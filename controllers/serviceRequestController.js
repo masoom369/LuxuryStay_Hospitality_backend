@@ -26,7 +26,32 @@ const updateServiceRequest = async (req, res) => {
   }
 };
 
+const getServiceRequestsByUser = async (req, res) => {
+  try {
+    const requests = await ServiceRequest.find({ guest: req.params.userId })
+      .populate('service', 'name')
+      .sort({ createdAt: -1 });
+    res.status(200).json({ success: true, data: requests });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const getServiceRequestsByHotel = async (req, res) => {
+  try {
+    const requests = await ServiceRequest.find({ hotel: req.params.hotelId })
+      .populate('guest', 'name')
+      .populate('service', 'name')
+      .sort({ createdAt: -1 });
+    res.status(200).json({ success: true, data: requests });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 module.exports = {
   requestService,
-  updateServiceRequest
+  updateServiceRequest,
+  getServiceRequestsByUser,
+  getServiceRequestsByHotel
 };

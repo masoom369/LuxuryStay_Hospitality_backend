@@ -48,8 +48,63 @@ const updateBookingStatus = async (req, res) => {
   }
 };
 
+const checkInBooking = async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id).populate('room');
+    if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+    if (booking.status !== 'confirmed') {
+      return res.status(400).json({ success: false, message: 'Booking not eligible for check-in' });
+    }
+
+    // Update booking status
+    booking.status = 'checked-in';
+    await booking.save();
+
+    // Update room status to occupied
+    await Room.findByIdAndUpdate(booking.room._id, { status: 'occupied' });
+
+    // Simulate key issuance (in real app, integrate with key system)
+    res.status(200).json({ success: true, message: 'Checked in successfully', data: booking });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const checkOutBooking = async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id).populate('room guest hotel');
+    if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+    if (booking.status !== 'checked-in') {
+      return res.status(400).json({ success: false, message: 'Booking not eligible for check-out' });
+    }
+
+    // Update booking status
+    booking.status = 'checked-out';
+    await booking.save();
+
+    // Update room status to cleaning
+    await Room.findByIdAndUpdate(booking.room._id, { status: 'cleaning' });
+
+    // Generate invoice (placeholder)
+    const Invoice = require('../models/Invoice');
+    const invoice = await Invoice.create({
+      booking: booking._id,
+      guest: booking.guest._id,
+      hotel: booking.hotel._id,
+      totalAmount: booking.totalAmount,
+      items: [{ description: 'Room charges', amount: booking.totalAmount }]
+    });
+
+    res.status(200).json({ success: true, message: 'Checked out successfully', data: { booking, invoice } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 module.exports = {
   createBooking,
   getBookings,
-  updateBookingStatus
+  updateBookingStatus,
+  checkInBooking,
+  checkOutBooking
 };

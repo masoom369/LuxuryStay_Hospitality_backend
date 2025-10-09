@@ -21,7 +21,21 @@ const createService = async (req, res) => {
   }
 };
 
+const getServicesByCategory = async (req, res) => {
+  try {
+    const { category } = req.query;
+    const services = await ServiceCatalog.find({
+      category,
+      isActive: true
+    });
+    res.status(200).json({ success: true, data: services });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 module.exports = {
   getServicesByHotel,
-  createService
+  createService,
+  getServicesByCategory
 };
