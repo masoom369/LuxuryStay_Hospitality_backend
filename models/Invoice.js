@@ -1,4 +1,6 @@
 // Invoice.js
+const mongoose = require('mongoose');
+
 const invoiceSchema = new mongoose.Schema({
   booking: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking', required: true },
   guest: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
