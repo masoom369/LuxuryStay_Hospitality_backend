@@ -1,24 +1,26 @@
-// User.js
 const mongoose = require('mongoose');
+
+const assignmentSchema = new mongoose.Schema({
+  role: {
+    type: String,
+    enum: ['admin', 'subadmin', 'manager', 'receptionist', 'housekeeping'],
+    required: true
+  },
+  hotel: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Hotel',
+    required: function () {
+      // Only require hotel if role is not 'admin' or 'guest'
+      return this.role !== 'admin' && this.role !== 'guest';
+    }
+  }
+}, { _id: false });
 
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true }, // hashed
-  // ONLY for staff (managers, receptionists, housekeeping, etc.)
-  // Guests typically have an EMPTY assignments array
-  assignments: [{
-    hotel: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Hotel',
-      required: true
-    },
-    role: {
-      type: String,
-      enum: ['admin', 'manager', 'receptionist', 'housekeeping'],
-      required: true
-    }
-  }],
+  assignments: [assignmentSchema],
   contact: { type: String },
   address: { type: String },
   preferences: { type: String }, // e.g., "non-smoking", "high floor"
@@ -26,3 +28,5 @@ const userSchema = new mongoose.Schema({
   resetPasswordToken: { type: String },
   resetPasswordExpires: { type: Date }
 }, { timestamps: true });
+
+module.exports = mongoose.model('User', userSchema);
