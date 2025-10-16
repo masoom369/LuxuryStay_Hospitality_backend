@@ -39,13 +39,14 @@ const updateUser = async (req, res) => {
 
 const deactivateUser = async (req, res) => {
   try {
+    const { isActive = false } = req.body;
     const user = await User.findByIdAndUpdate(
       req.params.id,
-      { isActive: false },
+      { isActive },
       { new: true }
     );
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-    res.status(200).json({ success: true, message: 'User deactivated' });
+    res.status(200).json({ success: true, message: `User ${isActive ? 'activated' : 'deactivated'}` });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -62,14 +63,14 @@ const register = async (req, res) => {
       return res.status(400).json({ success: false, message: 'User already exists' });
     }
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({ name, email, password: hashedPassword });
+    const user = new User({ name, email, password: hashedPassword, assignments: [{ role: 'guest' }] });
     await user.save();
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
     res.status(201).json({
       success: true,
       message: 'User registered successfully',
       token,
-      user: { id: user._id, name: user.name, email: user.email }
+      user: { id: user._id, name: user.name, email: user.email, assignments: user.assignments }
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -160,6 +161,34 @@ const resetPassword = async (req, res) => {
   }
 };
 
+const createStaff = async (req, res) => {
+  try {
+    const { name, email, password, role, hotel } = req.body;
+    if (!name || !email || !password || !role) {
+      return res.status(400).json({ success: false, message: 'Name, email, password, and role are required' });
+    }
+    const validRoles = ['manager', 'receptionist', 'housekeeping'];
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({ success: false, message: 'Invalid role for staff creation' });
+    }
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ success: false, message: 'User already exists' });
+    }
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const assignments = [{ role, hotel }];
+    const user = new User({ name, email, password: hashedPassword, assignments });
+    await user.save();
+    res.status(201).json({
+      success: true,
+      message: 'Staff account created successfully',
+      data: { id: user._id, name: user.name, email: user.email, assignments: user.assignments }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 module.exports = {
   getAllUsers,
   getUserById,
@@ -168,5 +197,6 @@ module.exports = {
   register,
   login,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  createStaff
 };
