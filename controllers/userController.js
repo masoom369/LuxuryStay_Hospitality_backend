@@ -15,7 +15,8 @@ const getAllUsers = async (req, res) => {
 
 const getUserById = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).select('-password');
+    const userId = req.params.id === 'me' ? req.user.id : req.params.id;
+    const user = await User.findById(userId).select('-password');
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
     res.status(200).json({ success: true, data: user });
   } catch (err) {
