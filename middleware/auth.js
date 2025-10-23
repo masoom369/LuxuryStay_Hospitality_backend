@@ -24,20 +24,18 @@ const authorize = (...roles) => {
       return res.status(401).json({ success: false, message: 'Authentication required.' });
     }
 
-    // For guests, assignments is empty, so check if roles include 'guest' or if no roles required
     const userRoles = req.user.assignments?.map(a => a.role) || [];
-    const isGuest = userRoles.length === 0;
 
     if (roles.length === 0) {
       // No specific roles required, allow authenticated users
       return next();
     }
 
-    if (roles.includes('guest') && isGuest) {
-      return next();
-    }
-
     if (userRoles.some(role => roles.includes(role))) {
+      // Additional check for guests: they can only deactivate their own account
+      if (roles.includes('guest') && req.params.id && req.params.id !== req.user.id) {
+        return res.status(403).json({ success: false, message: 'Guests can only deactivate their own account' });
+      }
       return next();
     }
 

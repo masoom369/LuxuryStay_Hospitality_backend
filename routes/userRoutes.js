@@ -9,6 +9,7 @@ const {
   login,
   forgotPassword,
   resetPassword,
+  changePassword,
   createStaff
 } = require('../controllers/userController');
 const { authenticate, authorize } = require('../middleware/auth');
@@ -21,11 +22,11 @@ router.post('/reset-password', resetPassword);
 
 // Protected routes
 router.post('/create-staff', authenticate, authorize('admin'), createStaff);
-router.get('/me', authenticate, getUserById); // Get current user's details
 router.get('/', authenticate, authorize('admin'), getAllUsers);
-router.get('/:id', authenticate, getUserById);
-router.put('/:id', authenticate, updateUser);
-router.put('/:id/status', authenticate, authorize('admin'), deactivateUser); // Admin can activate/deactivate any user
+router.get('/:id', authenticate, authorize(), getUserById); // Any authenticated user can view profiles
+router.put('/:id', authenticate, authorize(), updateUser); // Any authenticated user can update profiles (with additional checks in controller if needed)
+router.put('/change-password', authenticate, authorize(), changePassword); // Any authenticated user can change their own password
+router.put('/:id/admin/deactivate', authenticate, authorize('admin'), deactivateUser); // Admin can activate/deactivate any user
 router.put('/:id/deactivate', authenticate, authorize('guest'), deactivateUser); // Guests can only deactivate themselves
 
 module.exports = router;

@@ -6,10 +6,10 @@ const connectDB = require('./config/db');
 // Load environment variables
 dotenv.config();
 
+const app = express();
+
 // Connect to database
 connectDB();
-
-const app = express();
 
 // Middleware
 app.use(cors());

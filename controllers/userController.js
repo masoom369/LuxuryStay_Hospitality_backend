@@ -15,8 +15,7 @@ const getAllUsers = async (req, res) => {
 
 const getUserById = async (req, res) => {
   try {
-    const userId = req.params.id === 'me' ? req.user.id : req.params.id;
-    const user = await User.findById(userId).select('-password');
+    const user = await User.findById(req.params.id).select('-password');
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
     res.status(200).json({ success: true, data: user });
   } catch (err) {
@@ -41,8 +40,10 @@ const updateUser = async (req, res) => {
 const deactivateUser = async (req, res) => {
   try {
     const { isActive = false } = req.body;
+    const userId = req.params.id;
+
     const user = await User.findByIdAndUpdate(
-      req.params.id,
+      userId,
       { isActive },
       { new: true }
     );
@@ -162,13 +163,39 @@ const resetPassword = async (req, res) => {
   }
 };
 
+const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Current password and new password are required' });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ success: false, message: 'Current password is incorrect' });
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    res.status(200).json({ success: true, message: 'Password changed successfully' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 const createStaff = async (req, res) => {
   try {
     const { name, email, password, role, hotel } = req.body;
     if (!name || !email || !password || !role) {
       return res.status(400).json({ success: false, message: 'Name, email, password, and role are required' });
     }
-    const validRoles = ['manager', 'receptionist', 'housekeeping'];
+    const validRoles = ['admin', 'manager', 'receptionist', 'housekeeping'];
     if (!validRoles.includes(role)) {
       return res.status(400).json({ success: false, message: 'Invalid role for staff creation' });
     }
@@ -199,5 +226,6 @@ module.exports = {
   login,
   forgotPassword,
   resetPassword,
+  changePassword,
   createStaff
 };
