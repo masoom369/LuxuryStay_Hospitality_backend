@@ -40,10 +40,8 @@ const updateUser = async (req, res) => {
 const deactivateUser = async (req, res) => {
   try {
     const { isActive = false } = req.body;
-    const userId = req.params.id;
-
     const user = await User.findByIdAndUpdate(
-      userId,
+      req.params.id,
       { isActive },
       { new: true }
     );
@@ -67,13 +65,8 @@ const register = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = new User({ name, email, password: hashedPassword, assignments: [{ role: 'guest' }] });
     await user.save();
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    res.status(201).json({
-      success: true,
-      message: 'User registered successfully',
-      token,
-      user: { id: user._id, name: user.name, email: user.email, assignments: user.assignments }
-    });
+    const token = jwt.sign({ id: user._id, assignments: user.assignments }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    res.status(201).json({ success: true, message: 'User registered successfully', token, user: { id: user._id, name: user.name, email: user.email, assignments: user.assignments } });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -87,18 +80,14 @@ const login = async (req, res) => {
     }
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({ success: false, message: 'Invalid credentials' });
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ success: false, message: 'Invalid credentials' });
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    res.status(200).json({
-      success: true,
-      token,
-      user: { id: user._id, name: user.name, email: user.email, assignments: user.assignments }
-    });
+    const token = jwt.sign({ id: user._id, assignments: user.assignments }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    res.status(200).json({ success: true, message: 'Login successful', token, user: { id: user._id, name: user.name, email: user.email, assignments: user.assignments } });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -123,15 +112,16 @@ const forgotPassword = async (req, res) => {
       port: process.env.EMAIL_PORT || 587,
       secure: false,
       auth: {
-        user: process.env.EMAIL_USERNAME,
-        pass: process.env.EMAIL_PASSWORD
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
       }
     });
+
     const mailOptions = {
-      from: process.env.EMAIL_USERNAME,
+      from: process.env.EMAIL_FROM,
       to: email,
       subject: 'Password Reset',
-      text: `Your password reset token is: ${resetToken}. It expires in 1 hour.`
+      text: `You requested a password reset. Use this token to reset your password: ${user.resetPasswordToken}. It expires in 1 hour.`
     };
     await transporter.sendMail(mailOptions);
     res.status(200).json({ success: true, message: 'Password reset email sent' });

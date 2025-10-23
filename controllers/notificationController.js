@@ -4,7 +4,7 @@ const nodemailer = require('nodemailer');
 
 const getNotifications = async (req, res) => {
   try {
-    const notifications = await Notification.find({ user: req.params.userId })
+    const notifications = await Notification.find({ recipient: req.params.userId })
       .sort({ createdAt: -1 });
     res.status(200).json({ success: true, data: notifications });
   } catch (err) {
@@ -37,7 +37,7 @@ const createNotification = async (req, res) => {
 
 const sendNotificationEmail = async (req, res) => {
   try {
-    const notification = await Notification.findById(req.params.id).populate('user', 'email name');
+    const notification = await Notification.findById(req.params.id).populate('recipient', 'email name');
     if (!notification) return res.status(404).json({ success: false, message: 'Notification not found' });
 
     const transporter = nodemailer.createTransport({
@@ -51,8 +51,8 @@ const sendNotificationEmail = async (req, res) => {
     });
 
     const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: notification.user.email,
+      from: process.env.EMAIL_FROM,
+      to: notification.recipient.email,
       subject: 'Hotel Notification',
       text: notification.message
     };
@@ -67,7 +67,7 @@ const sendNotificationEmail = async (req, res) => {
 const triggerNotification = async (type, userId, message) => {
   try {
     await Notification.create({
-      user: userId,
+      recipient: userId,
       message,
       type
     });

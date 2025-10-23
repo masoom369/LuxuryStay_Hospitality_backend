@@ -65,7 +65,7 @@ const reportMaintenanceIssue = async (req, res) => {
       reportedBy,
       description,
       priority: priority || 'medium',
-      status: 'pending'
+      status: 'reported'
     });
     res.status(201).json({ success: true, message: 'Maintenance issue reported', data: request });
   } catch (err) {

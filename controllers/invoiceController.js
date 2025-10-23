@@ -39,7 +39,7 @@ const sendInvoiceEmail = async (req, res) => {
 
     const itemsText = invoice.items.map(item => `${item.description}: $${item.amount}`).join('\n');
     const mailOptions = {
-      from: process.env.EMAIL_USER,
+      from: process.env.EMAIL_FROM,
       to: invoice.guest.email,
       subject: `Invoice from ${invoice.hotel.name}`,
       text: `Dear ${invoice.guest.name},\n\nYour invoice details:\n\n${itemsText}\n\nTotal: $${invoice.totalAmount}\n\nThank you for staying with us!`
