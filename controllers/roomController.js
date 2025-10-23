@@ -72,7 +72,9 @@ const getAvailableRooms = async (req, res) => {
       const bookedRoomIds = await Booking.find({
         status: { $in: ['confirmed', 'checked-in'] },
         $or: [
-          { checkIn: { $lt: checkOut }, checkOut: { $gt: checkIn } }
+          { checkIn: { $lt: checkOut }, checkOut: { $gt: checkIn } },
+          { checkIn: { $gte: checkIn, $lt: checkOut } },
+          { checkOut: { $gt: checkIn, $lte: checkOut } }
         ]
       }).distinct('room');
       query._id = { $nin: bookedRoomIds };

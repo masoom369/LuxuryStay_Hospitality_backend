@@ -40,7 +40,7 @@ const sendNotificationEmail = async (req, res) => {
     const notification = await Notification.findById(req.params.id).populate('user', 'email name');
     if (!notification) return res.status(404).json({ success: false, message: 'Notification not found' });
 
-    const transporter = nodemailer.createTransporter({
+    const transporter = nodemailer.createTransport({
       host: process.env.EMAIL_HOST,
       port: process.env.EMAIL_PORT || 587,
       secure: false,

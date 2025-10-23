@@ -10,7 +10,9 @@ const createBooking = async (req, res) => {
       room,
       status: { $in: ['confirmed', 'checked-in'] },
       $or: [
-        { checkIn: { $lt: checkOut }, checkOut: { $gt: checkIn } }
+        { checkIn: { $lt: checkOut }, checkOut: { $gt: checkIn } },
+        { checkIn: { $gte: checkIn, $lt: checkOut } },
+        { checkOut: { $gt: checkIn, $lte: checkOut } }
       ]
     });
     if (existing) return res.status(400).json({ success: false, message: 'Room not available for selected dates' });

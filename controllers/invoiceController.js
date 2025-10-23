@@ -27,7 +27,7 @@ const sendInvoiceEmail = async (req, res) => {
     const invoice = await Invoice.findById(req.params.id).populate('guest', 'name email').populate('hotel', 'name');
     if (!invoice) return res.status(404).json({ success: false, message: 'Invoice not found' });
 
-    const transporter = nodemailer.createTransporter({
+    const transporter = nodemailer.createTransport({
       host: process.env.EMAIL_HOST,
       port: process.env.EMAIL_PORT || 587,
       secure: false,

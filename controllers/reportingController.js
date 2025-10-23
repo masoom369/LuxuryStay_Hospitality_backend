@@ -47,7 +47,7 @@ const getFeedbackReports = async (req, res) => {
   try {
     const { hotelId } = req.query;
     const feedbacks = await Feedback.find({ hotel: hotelId }).populate('guest', 'name');
-    const averageRating = feedbacks.reduce((sum, f) => sum + f.rating, 0) / feedbacks.length;
+    const averageRating = feedbacks.length > 0 ? feedbacks.reduce((sum, f) => sum + f.rating, 0) / feedbacks.length : 0;
     res.status(200).json({ success: true, data: { feedbacks, averageRating } });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
