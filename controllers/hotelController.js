@@ -11,7 +11,7 @@ const createHotel = async (req, res) => {
 
 const getAllHotels = async (req, res) => {
   try {
-    const hotels = await Hotel.find({ isActive: true });
+    const hotels = await Hotel.find({ deletedAt: { $exists: false } });
     res.status(200).json({ success: true, data: hotels });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -32,15 +32,35 @@ const updateHotel = async (req, res) => {
   }
 };
 
+const getHotelById = async (req, res) => {
+  try {
+    const hotel = await Hotel.findById(req.params.id);
+    if (!hotel) return res.status(404).json({ success: false, message: 'Hotel not found' });
+    res.status(200).json({ success: true, data: hotel });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 const deactivateHotel = async (req, res) => {
   try {
     const hotel = await Hotel.findByIdAndUpdate(
       req.params.id,
-      { isActive: false },
+      { deletedAt: new Date() },
       { new: true }
     );
     if (!hotel) return res.status(404).json({ success: false, message: 'Hotel not found' });
-    res.status(200).json({ success: true, message: 'Hotel deactivated' });
+    res.status(200).json({ success: true, message: 'Hotel soft deleted' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const deleteHotel = async (req, res) => {
+  try {
+    const hotel = await Hotel.findByIdAndDelete(req.params.id);
+    if (!hotel) return res.status(404).json({ success: false, message: 'Hotel not found' });
+    res.status(200).json({ success: true, message: 'Hotel permanently deleted' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -65,7 +85,9 @@ const updateHotelSettings = async (req, res) => {
 module.exports = {
   createHotel,
   getAllHotels,
+  getHotelById,
   updateHotel,
   deactivateHotel,
+  deleteHotel,
   updateHotelSettings
 };

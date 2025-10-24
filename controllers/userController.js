@@ -6,7 +6,7 @@ const crypto = require('crypto');
 
 const getAllUsers = async (req, res) => {
   try {
-    const users = await User.find().select('-password');
+    const users = await User.find({ deletedAt: { $exists: false } }).select('-password');
     res.status(200).json({ success: true, data: users });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -39,14 +39,23 @@ const updateUser = async (req, res) => {
 
 const deactivateUser = async (req, res) => {
   try {
-    const { isActive = false } = req.body;
     const user = await User.findByIdAndUpdate(
       req.params.id,
-      { isActive },
+      { deletedAt: new Date() },
       { new: true }
     );
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-    res.status(200).json({ success: true, message: `User ${isActive ? 'activated' : 'deactivated'}` });
+    res.status(200).json({ success: true, message: 'User soft deleted' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const deleteUser = async (req, res) => {
+  try {
+    const user = await User.findByIdAndDelete(req.params.id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    res.status(200).json({ success: true, message: 'User permanently deleted' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -179,6 +188,30 @@ const changePassword = async (req, res) => {
   }
 };
 
+const createUser = async (req, res) => {
+  try {
+    const { name, email, password, role, hotel } = req.body;
+    if (!name || !email || !password) {
+      return res.status(400).json({ success: false, message: 'Name, email, and password are required' });
+    }
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ success: false, message: 'User already exists' });
+    }
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const assignments = role ? [{ role, hotel }] : [{ role: 'guest' }];
+    const user = new User({ name, email, password: hashedPassword, assignments });
+    await user.save();
+    res.status(201).json({
+      success: true,
+      message: 'User created successfully',
+      data: { id: user._id, name: user.name, email: user.email, assignments: user.assignments }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 const createStaff = async (req, res) => {
   try {
     const { name, email, password, role, hotel } = req.body;
@@ -208,10 +241,12 @@ const createStaff = async (req, res) => {
 };
 
 module.exports = {
+  createUser,
   getAllUsers,
   getUserById,
   updateUser,
   deactivateUser,
+  deleteUser,
   register,
   login,
   forgotPassword,

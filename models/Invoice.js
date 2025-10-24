@@ -15,5 +15,7 @@ const invoiceSchema = new mongoose.Schema({
     enum: ['pending', 'paid', 'failed'],
     default: 'pending'
   },
-  hotel: { type: mongoose.Schema.Types.ObjectId, ref: 'Hotel', required: true }
+  hotel: { type: mongoose.Schema.Types.ObjectId, ref: 'Hotel', required: true },
+  deletedAt: { type: Date }
 }, { timestamps: true });
+module.exports = mongoose.model('Invoice', invoiceSchema);

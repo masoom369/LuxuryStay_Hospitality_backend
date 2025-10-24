@@ -26,7 +26,7 @@ const createBooking = async (req, res) => {
 
 const getBookings = async (req, res) => {
   try {
-    const bookings = await Booking.find()
+    const bookings = await Booking.find({ deletedAt: { $exists: false } })
       .populate('guest', 'name email')
       .populate('room', 'roomNumber type')
       .populate('hotel', 'name');
@@ -72,6 +72,57 @@ const checkInBooking = async (req, res) => {
   }
 };
 
+const getBookingById = async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id)
+      .populate('guest', 'name email')
+      .populate('room', 'roomNumber type')
+      .populate('hotel', 'name');
+    if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+    res.status(200).json({ success: true, data: booking });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const updateBooking = async (req, res) => {
+  try {
+    const booking = await Booking.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    );
+    if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+    res.status(200).json({ success: true, data: booking });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+const deactivateBooking = async (req, res) => {
+  try {
+    const booking = await Booking.findByIdAndUpdate(
+      req.params.id,
+      { deletedAt: new Date() },
+      { new: true }
+    );
+    if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+    res.status(200).json({ success: true, message: 'Booking soft deleted' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const deleteBooking = async (req, res) => {
+  try {
+    const booking = await Booking.findByIdAndDelete(req.params.id);
+    if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+    res.status(200).json({ success: true, message: 'Booking permanently deleted' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 const checkOutBooking = async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id).populate('room guest hotel');
@@ -106,7 +157,11 @@ const checkOutBooking = async (req, res) => {
 module.exports = {
   createBooking,
   getBookings,
+  getBookingById,
+  updateBooking,
   updateBookingStatus,
+  deactivateBooking,
+  deleteBooking,
   checkInBooking,
   checkOutBooking
 };

@@ -5,6 +5,7 @@ const {
   getRoomById,
   createRoom,
   updateRoom,
+  deactivateRoom,
   updateRoomStatus,
   getAvailableRooms
 } = require('../controllers/roomController');
@@ -16,6 +17,7 @@ router.get('/available', getAvailableRooms); // Public for booking
 router.get('/:id', authenticate, authorize('admin', 'manager', 'receptionist'), getRoomById);
 router.post('/', authenticate, authorize('admin', 'manager'), createRoom);
 router.put('/:id', authenticate, authorize('admin', 'manager'), updateRoom);
+router.delete('/:id', authenticate, authorize('admin', 'manager'), deactivateRoom);
 router.patch('/:id/status', authenticate, authorize('admin', 'manager', 'receptionist', 'housekeeping'), updateRoomStatus);
 
 module.exports = router;

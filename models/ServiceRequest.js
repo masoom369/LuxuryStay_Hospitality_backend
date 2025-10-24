@@ -15,5 +15,7 @@ const serviceRequestSchema = new mongoose.Schema({
   requestedAt: { type: Date, default: Date.now },
   completedAt: Date,
   assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // e.g., staff member
-  notes: String
+  notes: String,
+  deletedAt: { type: Date }
 }, { timestamps: true });
+module.exports = mongoose.model('ServiceRequest', serviceRequestSchema);

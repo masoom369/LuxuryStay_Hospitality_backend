@@ -8,11 +8,12 @@ const contactUsSchema = new mongoose.Schema({
   message: { type: String, required: true },
   status: {
     type: String,
-    enum: ['pending', 'responded', 'closed'],
+    enum: ['pending', 'responded'],
     default: 'pending'
   },
   respondedAt: Date,
-  response: String
+  response: String,
+  deletedAt: { type: Date }
 }, { timestamps: true });
 
 module.exports = mongoose.model('ContactUs', contactUsSchema);

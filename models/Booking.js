@@ -12,5 +12,7 @@ const bookingSchema = new mongoose.Schema({
     default: 'confirmed'
   },
   totalAmount: { type: Number, required: true },
-  hotel: { type: mongoose.Schema.Types.ObjectId, ref: 'Hotel', required: true }
+  hotel: { type: mongoose.Schema.Types.ObjectId, ref: 'Hotel', required: true },
+  deletedAt: { type: Date }
 }, { timestamps: true });
+module.exports = mongoose.model('Booking', bookingSchema);

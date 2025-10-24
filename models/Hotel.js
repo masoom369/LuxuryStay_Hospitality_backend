@@ -17,5 +17,7 @@ const hotelSchema = new mongoose.Schema({
     email: String
   },
   amenities: [String], // e.g., ["Pool", "Spa", "Restaurant"]
-  isActive: { type: Boolean, default: true }
+  isActive: { type: Boolean, default: true },
+  deletedAt: { type: Date }
 }, { timestamps: true });
+module.exports = mongoose.model('Hotel', hotelSchema);

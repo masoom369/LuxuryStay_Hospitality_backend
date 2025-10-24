@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const {
+  createUser,
   getAllUsers,
   getUserById,
   updateUser,
@@ -22,7 +23,7 @@ router.post('/reset-password', resetPassword);
 
 // Protected routes
 router.post('/create-staff', authenticate, authorize('admin'), createStaff);
-router.get('/', authenticate, authorize('admin'), getAllUsers);
+router.get('/all', authenticate, authorize('admin'), getAllUsers);
 router.get('/:id', authenticate, authorize(), getUserById); // Any authenticated user can view profiles
 router.put('/:id', authenticate, authorize(), updateUser); // Any authenticated user can update profiles (with additional checks in controller if needed)
 router.put('/change-password', authenticate, authorize(), changePassword); // Any authenticated user can change their own password

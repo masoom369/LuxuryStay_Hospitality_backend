@@ -15,6 +15,13 @@ connectDB();
 app.use(cors());
 app.use(express.json());
 
+// Logging middleware for debugging request bodies
+app.use((req, res, next) => {
+  console.log(`Incoming ${req.method} request to ${req.url}`);
+  console.log('Request body:', req.body);
+  next();
+});
+
 // Routes
 const userRoutes = require('./routes/userRoutes');
 const roomRoutes = require('./routes/roomRoutes');
@@ -50,9 +57,30 @@ app.get('/', (req, res) => {
   res.json({ message: 'Welcome to LuxuryStay Hospitality API' });
 });
 
+// -----------------------------
+// 404 Handler (Not Found)
+// -----------------------------
+app.use((req, res, next) => {
+  res.status(404).json({
+    success: false,
+    message: `Route ${req.originalUrl} not found`
+  });
+});
+
+// -----------------------------
+// Global Error Handler
+// -----------------------------
+app.use((err, req, res, next) => {
+  console.error('🔥 Error:', err.stack);
+  res.status(err.statusCode || 500).json({
+    success: false,
+    message: err.message || 'Internal Server Error',
+  });
+});
+
 // Port
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`✅ Server running on port ${PORT}`);
 });

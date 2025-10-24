@@ -12,6 +12,8 @@ const roomSchema = new mongoose.Schema({
   },
   features: [String], // e.g., ["AC", "WiFi", "Balcony"]
   hotel: { type: mongoose.Schema.Types.ObjectId, ref: 'Hotel', required: true },
+  deletedAt: { type: Date }
 }, { timestamps: true });
 
 roomSchema.index({ hotel: 1, roomNumber: 1 }, { unique: true });
+module.exports = mongoose.model('Room', roomSchema);

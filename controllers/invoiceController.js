@@ -1,6 +1,78 @@
 const Invoice = require('../models/Invoice');
 const nodemailer = require('nodemailer');
 
+const createInvoice = async (req, res) => {
+  try {
+    const invoice = await Invoice.create(req.body);
+    res.status(201).json({ success: true, data: invoice });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+const getAllInvoices = async (req, res) => {
+  try {
+    const invoices = await Invoice.find({ deletedAt: { $exists: false } })
+      .populate('booking', 'checkIn checkOut')
+      .populate('guest', 'name email')
+      .populate('hotel', 'name');
+    res.status(200).json({ success: true, data: invoices });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const getInvoiceById = async (req, res) => {
+  try {
+    const invoice = await Invoice.findById(req.params.id)
+      .populate('booking', 'checkIn checkOut')
+      .populate('guest', 'name email')
+      .populate('hotel', 'name');
+    if (!invoice) return res.status(404).json({ success: false, message: 'Invoice not found' });
+    res.status(200).json({ success: true, data: invoice });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const updateInvoice = async (req, res) => {
+  try {
+    const invoice = await Invoice.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    );
+    if (!invoice) return res.status(404).json({ success: false, message: 'Invoice not found' });
+    res.status(200).json({ success: true, data: invoice });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+const deactivateInvoice = async (req, res) => {
+  try {
+    const invoice = await Invoice.findByIdAndUpdate(
+      req.params.id,
+      { deletedAt: new Date() },
+      { new: true }
+    );
+    if (!invoice) return res.status(404).json({ success: false, message: 'Invoice not found' });
+    res.status(200).json({ success: true, message: 'Invoice soft deleted' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const deleteInvoice = async (req, res) => {
+  try {
+    const invoice = await Invoice.findByIdAndDelete(req.params.id);
+    if (!invoice) return res.status(404).json({ success: false, message: 'Invoice not found' });
+    res.status(200).json({ success: true, message: 'Invoice permanently deleted' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 const generateInvoice = async (req, res) => {
   try {
     const invoice = await Invoice.create(req.body);
@@ -73,6 +145,12 @@ const printInvoice = async (req, res) => {
 };
 
 module.exports = {
+  createInvoice,
+  getAllInvoices,
+  getInvoiceById,
+  updateInvoice,
+  deactivateInvoice,
+  deleteInvoice,
   generateInvoice,
   getInvoiceByBooking,
   sendInvoiceEmail,

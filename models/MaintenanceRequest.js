@@ -12,5 +12,7 @@ const maintenanceRequestSchema = new mongoose.Schema({
     default: 'reported'
   },
   resolvedAt: Date,
-  hotel: { type: mongoose.Schema.Types.ObjectId, ref: 'Hotel', required: true }
+  hotel: { type: mongoose.Schema.Types.ObjectId, ref: 'Hotel', required: true },
+  deletedAt: { type: Date }
 }, { timestamps: true });
+module.exports = mongoose.model('MaintenanceRequest', maintenanceRequestSchema);

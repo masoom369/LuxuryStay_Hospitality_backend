@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   createHotel,
   getAllHotels,
+  getHotelById,
   updateHotel,
   deactivateHotel,
   updateHotelSettings
@@ -11,6 +12,7 @@ const { authenticate, authorize } = require('../middleware/auth');
 
 // Routes
 router.get('/', getAllHotels); // Public for viewing hotels
+router.get('/:id', getHotelById); // Public for viewing specific hotel
 router.post('/', authenticate, authorize('admin'), createHotel);
 router.put('/:id', authenticate, authorize('admin', 'manager'), updateHotel);
 router.delete('/:id', authenticate, authorize('admin'), deactivateHotel);

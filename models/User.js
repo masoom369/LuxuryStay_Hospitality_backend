@@ -26,7 +26,8 @@ const userSchema = new mongoose.Schema({
   preferences: { type: String }, // e.g., "non-smoking", "high floor"
   isActive: { type: Boolean, default: true },
   resetPasswordToken: { type: String },
-  resetPasswordExpires: { type: Date }
+  resetPasswordExpires: { type: Date },
+  deletedAt: { type: Date }
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

@@ -7,5 +7,7 @@ const notificationSchema = new mongoose.Schema({
   type: { type: String, enum: ['booking', 'maintenance', 'housekeeping', 'system'] },
   isRead: { type: Boolean, default: false },
   relatedId: { type: mongoose.Schema.Types.ObjectId }, // e.g., bookingId, requestId
-  hotel: { type: mongoose.Schema.Types.ObjectId, ref: 'Hotel', required: true }
+  hotel: { type: mongoose.Schema.Types.ObjectId, ref: 'Hotel', required: true },
+  deletedAt: { type: Date }
 }, { timestamps: true });
+module.exports = mongoose.model('Notification', notificationSchema);

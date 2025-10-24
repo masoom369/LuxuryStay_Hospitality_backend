@@ -6,5 +6,7 @@ const feedbackSchema = new mongoose.Schema({
   booking: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking', required: true },
   rating: { type: Number, min: 1, max: 5, required: true },
   comment: { type: String },
-  hotel: { type: mongoose.Schema.Types.ObjectId, ref: 'Hotel', required: true }
+  hotel: { type: mongoose.Schema.Types.ObjectId, ref: 'Hotel', required: true },
+  deletedAt: { type: Date }
 });
+module.exports = mongoose.model('Feedback', feedbackSchema);
