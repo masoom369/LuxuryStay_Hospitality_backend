@@ -2,6 +2,7 @@
 // System Config Controller
 // ======================
 const { SystemConfig } = require('../models/');
+const { applyAccessFilters } = require('../middleware/auth');
 
 const createConfig = async (req, res) => {
   try {
@@ -33,7 +34,10 @@ const getAllConfigs = async (req, res) => {
     if (category) filter.category = category;
     if (hotel) filter.hotel = hotel;
 
-    const configs = await SystemConfig.find(filter)
+    // Apply access filters automatically
+    const query = applyAccessFilters(req, filter, 'config');
+
+    const configs = await SystemConfig.find(query)
       .populate('hotel', 'name')
       .populate('updatedBy', 'username email');
 
@@ -53,10 +57,15 @@ const getAllConfigs = async (req, res) => {
 
 const getConfigByKey = async (req, res) => {
   try {
-    const config = await SystemConfig.findOne({
+    const filter = {
       key: req.params.key,
       deletedAt: null
-    })
+    };
+
+    // Apply access filters automatically
+    const query = applyAccessFilters(req, filter, 'config');
+
+    const config = await SystemConfig.findOne(query)
       .populate('hotel')
       .populate('updatedBy');
 
@@ -85,8 +94,12 @@ const updateConfig = async (req, res) => {
     const updates = req.body;
     updates.updatedBy = req.user.userId;
 
+    const filter = { key: req.params.key, deletedAt: null };
+    // Apply access filters automatically
+    const query = applyAccessFilters(req, filter, 'config');
+
     const config = await SystemConfig.findOneAndUpdate(
-      { key: req.params.key, deletedAt: null },
+      query,
       updates,
       { new: true, runValidators: true }
     );
@@ -114,8 +127,12 @@ const updateConfig = async (req, res) => {
 
 const deleteConfig = async (req, res) => {
   try {
+    const filter = { key: req.params.key, deletedAt: null };
+    // Apply access filters automatically
+    const query = applyAccessFilters(req, filter, 'config');
+
     const config = await SystemConfig.findOneAndUpdate(
-      { key: req.params.key, deletedAt: null },
+      query,
       { deletedAt: new Date() },
       { new: true }
     );
