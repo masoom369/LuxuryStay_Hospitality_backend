@@ -2,6 +2,7 @@
 // Maintenance Controller
 // ======================
 const { Maintenance, Room } = require('../models/');
+const { applyAccessFilters } = require('../middleware/auth');
 
 const createMaintenanceRequest = async (req, res) => {
   try {
@@ -42,25 +43,36 @@ const createMaintenanceRequest = async (req, res) => {
 
 const getAllMaintenanceRequests = async (req, res) => {
   try {
-    const { status, priority, issueType, assignedTo, room } = req.query;
-    const filter = { deletedAt: null };
+    const { page = 1, limit = 10, status, priority, issueType, assignedTo, room } = req.query;
+    const filters = { deletedAt: null };
 
-    if (status) filter.status = status;
-    if (priority) filter.priority = priority;
-    if (issueType) filter.issueType = issueType;
-    if (assignedTo) filter.assignedTo = assignedTo;
-    if (room) filter.room = room;
+    if (status) filters.status = status;
+    if (priority) filters.priority = priority;
+    if (issueType) filters.issueType = issueType;
+    if (assignedTo) filters.assignedTo = assignedTo;
+    if (room) filters.room = room;
 
-    const requests = await Maintenance.find(filter)
+    // Apply access filters automatically
+    const query = applyAccessFilters(req, filters, 'maintenance');
+
+    const requests = await Maintenance.find(query)
       .populate('room', 'roomNumber roomType floor hotel')
       .populate('reportedBy', 'username email')
       .populate('assignedTo', 'username email')
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
       .sort({ priority: -1, createdAt: -1 });
+
+    const total = await Maintenance.countDocuments(query);
 
     res.json({
       success: true,
       data: requests,
-      count: requests.length
+      pagination: {
+        total,
+        page: parseInt(page),
+        pages: Math.ceil(total / limit)
+      }
     });
   } catch (error) {
     res.status(500).json({
@@ -73,6 +85,7 @@ const getAllMaintenanceRequests = async (req, res) => {
 
 const getMaintenanceRequestById = async (req, res) => {
   try {
+    // Access already verified by authorize middleware
     const request = await Maintenance.findOne({
       _id: req.params.id,
       deletedAt: null

@@ -9,11 +9,11 @@ const { authenticate, authorize } = require('../middleware/auth');
 
 router.use(authenticate);
 
-router.post('/', createMaintenanceRequest);
-router.get('/', getAllMaintenanceRequests);
-router.get('/:id', getMaintenanceRequestById);
-router.put('/:id', authorize('admin', 'manager', 'maintenance'), updateMaintenanceRequest);
-router.post('/:id/assign', authorize('admin', 'manager'), assignMaintenance);
-router.post('/:id/complete', authorize('admin', 'manager', 'maintenance'), completeMaintenanceRequest);
+router.post('/', authorize({ roles: ['admin', 'manager'] }), createMaintenanceRequest);
+router.get('/', authorize({ roles: ['admin', 'manager', 'maintenance'], resource: 'maintenance', populatePath: 'room' }), getAllMaintenanceRequests);
+router.get('/:id', authorize({ roles: ['admin', 'manager', 'maintenance'], resource: 'maintenance', populatePath: 'room' }), getMaintenanceRequestById);
+router.put('/:id', authorize({ roles: ['admin', 'manager', 'maintenance'], resource: 'maintenance', populatePath: 'room' }), updateMaintenanceRequest);
+router.post('/:id/assign', authorize({ roles: ['admin', 'manager'], resource: 'maintenance', populatePath: 'room' }), assignMaintenance);
+router.post('/:id/complete', authorize({ roles: ['admin', 'manager', 'maintenance'], resource: 'maintenance', populatePath: 'room' }), completeMaintenanceRequest);
 
 module.exports = router;

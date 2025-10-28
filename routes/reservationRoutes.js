@@ -10,12 +10,12 @@ const { validateReservation, handleValidationErrors } = require('../middleware/v
 
 router.use(authenticate);
 
-router.post('/', authorize('admin', 'manager', 'receptionist'), validateReservation, handleValidationErrors, createReservation);
-router.get('/', getAllReservations);
-router.get('/:id', getReservationById);
-router.put('/:id', authorize('admin', 'manager', 'receptionist'), updateReservation);
-router.post('/:id/checkin', authorize('admin', 'manager', 'receptionist'), checkIn);
-router.post('/:id/checkout', authorize('admin', 'manager', 'receptionist'), checkOut);
-router.post('/:id/cancel', authorize('admin', 'manager', 'receptionist'), cancelReservation);
+router.post('/', authorize({ roles: ['admin', 'manager', 'receptionist'], resource: 'reservation', ownerField: 'guest', populatePath: 'room' }), validateReservation, handleValidationErrors, createReservation);
+router.get('/', authorize({ roles: ['admin', 'manager', 'receptionist', 'guest'], resource: 'reservation', ownerField: 'guest', populatePath: 'room' }), getAllReservations);
+router.get('/:id', authorize({ roles: ['admin', 'manager', 'receptionist', 'guest'], resource: 'reservation', ownerField: 'guest', populatePath: 'room' }), getReservationById);
+router.put('/:id', authorize({ roles: ['admin', 'manager', 'receptionist'], resource: 'reservation', ownerField: 'guest', populatePath: 'room' }), updateReservation);
+router.post('/:id/checkin', authorize({ roles: ['admin', 'manager', 'receptionist'], resource: 'reservation', ownerField: 'guest', populatePath: 'room' }), checkIn);
+router.post('/:id/checkout', authorize({ roles: ['admin', 'manager', 'receptionist'], resource: 'reservation', ownerField: 'guest', populatePath: 'room' }), checkOut);
+router.post('/:id/cancel', authorize({ roles: ['admin', 'manager', 'receptionist'], resource: 'reservation', ownerField: 'guest', populatePath: 'room' }), cancelReservation);
 
 module.exports = router;

@@ -10,12 +10,12 @@ const { validateRoom, handleValidationErrors } = require('../middleware/validati
 
 router.use(authenticate);
 
-router.post('/', authorize('admin', 'manager'), validateRoom, handleValidationErrors, createRoom);
-router.get('/', getAllRooms);
-router.get('/availability', checkAvailability);
-router.get('/:id', getRoomById);
-router.put('/:id', authorize('admin', 'manager'), updateRoom);
-router.patch('/:id/status', authorize('admin', 'manager', 'receptionist', 'housekeeping'), updateRoomStatus);
-router.delete('/:id', authorize('admin'), deleteRoom);
+router.post('/', authorize({ roles: ['admin', 'manager'], resource: 'room' }), validateRoom, handleValidationErrors, createRoom);
+router.get('/', authorize({ roles: ['admin', 'manager', 'receptionist', 'housekeeping', 'maintenance', 'guest'], resource: 'room' }), getAllRooms);
+router.get('/availability', authorize({ roles: ['admin', 'manager', 'receptionist', 'guest'], resource: 'room' }), checkAvailability);
+router.get('/:id', authorize({ roles: ['admin', 'manager', 'receptionist', 'housekeeping', 'maintenance', 'guest'], resource: 'room' }), getRoomById);
+router.put('/:id', authorize({ roles: ['admin', 'manager'], resource: 'room' }), updateRoom);
+router.patch('/:id/status', authorize({ roles: ['admin', 'manager', 'receptionist', 'housekeeping'], resource: 'room' }), updateRoomStatus);
+router.delete('/:id', authorize({ roles: ['admin'], resource: 'room' }), deleteRoom);
 
 module.exports = router;

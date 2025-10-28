@@ -9,11 +9,11 @@ const { authenticate, authorize } = require('../middleware/auth');
 
 router.use(authenticate);
 
-router.post('/', authorize('admin'), createUser);
-router.get('/', getAllUsers);
-router.get('/:id', getUserById);
-router.put('/:id', authorize('admin', 'manager'), updateUser);
-router.delete('/:id', authorize('admin'), deleteUser);
-router.post('/assign-hotel', authorize('admin'), assignHotel);
+router.post('/', authorize({ roles: ['admin'], resource: 'user' }), createUser);
+router.get('/', authorize({ roles: ['admin', 'manager'], resource: 'user' }), getAllUsers);
+router.get('/:id', authorize({ roles: ['admin', 'manager', 'guest'], resource: 'user', ownerField: '_id' }), getUserById);
+router.put('/:id', authorize({ roles: ['admin', 'manager'], resource: 'user', ownerField: '_id' }), updateUser);
+router.delete('/:id', authorize({ roles: ['admin'], resource: 'user', ownerField: '_id' }), deleteUser);
+router.post('/assign-hotel', authorize({ roles: ['admin'], resource: 'user' }), assignHotel);
 
 module.exports = router;

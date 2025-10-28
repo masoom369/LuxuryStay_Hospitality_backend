@@ -9,11 +9,11 @@ const { authenticate, authorize } = require('../middleware/auth');
 
 router.use(authenticate);
 
-router.post('/', authorize('admin', 'manager', 'housekeeping'), createHousekeepingTask);
-router.get('/', getAllHousekeepingTasks);
-router.get('/:id', getHousekeepingTaskById);
-router.put('/:id', authorize('admin', 'manager', 'housekeeping'), updateHousekeepingTask);
-router.post('/:id/start', authorize('housekeeping', 'manager'), startTask);
-router.post('/:id/complete', authorize('housekeeping', 'manager'), completeTask);
+router.post('/', authorize({ roles: ['admin', 'manager', 'housekeeping'], resource: 'housekeeping', populatePath: 'room' }), createHousekeepingTask);
+router.get('/', authorize({ roles: ['admin', 'manager', 'housekeeping'], resource: 'housekeeping', populatePath: 'room' }), getAllHousekeepingTasks);
+router.get('/:id', authorize({ roles: ['admin', 'manager', 'housekeeping'], resource: 'housekeeping', populatePath: 'room' }), getHousekeepingTaskById);
+router.put('/:id', authorize({ roles: ['admin', 'manager', 'housekeeping'], resource: 'housekeeping', populatePath: 'room' }), updateHousekeepingTask);
+router.post('/:id/start', authorize({ roles: ['housekeeping', 'manager'], resource: 'housekeeping', populatePath: 'room' }), startTask);
+router.post('/:id/complete', authorize({ roles: ['housekeeping', 'manager'], resource: 'housekeeping', populatePath: 'room' }), completeTask);
 
 module.exports = router;

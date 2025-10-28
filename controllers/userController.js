@@ -4,6 +4,7 @@
 // ======================
 const { User } = require('../models/');
 const bcrypt = require('bcryptjs');
+const { applyAccessFilters } = require('../middleware/auth');
 
 const createUser = async (req, res) => {
     try {
@@ -34,21 +35,33 @@ const createUser = async (req, res) => {
 
 const getAllUsers = async (req, res) => {
     try {
-        const { role, isActive, hotel } = req.query;
-        const filter = { deletedAt: null };
+        const { page = 1, limit = 10, role, isActive, hotel } = req.query;
+        const filters = { deletedAt: null };
 
-        if (role) filter.role = role;
-        if (isActive !== undefined) filter.isActive = isActive;
-        if (hotel) filter['assignments.hotel'] = hotel;
+        if (role) filters.role = role;
+        if (isActive !== undefined) filters.isActive = isActive;
+        if (hotel) filters['assignments.hotel'] = hotel;
 
-        const users = await User.find(filter)
+        // Apply access filters automatically
+        const query = applyAccessFilters(req, filters, 'user');
+
+        const users = await User.find(query)
             .populate('assignments.hotel', 'name location')
-            .select('-password');
+            .select('-password')
+            .limit(limit * 1)
+            .skip((page - 1) * limit)
+            .sort({ createdAt: -1 });
+
+        const total = await User.countDocuments(query);
 
         res.json({
             success: true,
             data: users,
-            count: users.length
+            pagination: {
+                total,
+                page: parseInt(page),
+                pages: Math.ceil(total / limit)
+            }
         });
     } catch (error) {
         res.status(500).json({
@@ -61,6 +74,7 @@ const getAllUsers = async (req, res) => {
 
 const getUserById = async (req, res) => {
     try {
+        // Access already verified by authorize middleware
         const user = await User.findOne({
             _id: req.params.id,
             deletedAt: null

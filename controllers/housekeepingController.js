@@ -2,6 +2,7 @@
 // Housekeeping Controller
 // ======================
 const { Housekeeping, Room } = require('../models/');
+const { applyAccessFilters } = require('../middleware/auth');
 
 const createHousekeepingTask = async (req, res) => {
   try {
@@ -27,24 +28,35 @@ const createHousekeepingTask = async (req, res) => {
 
 const getAllHousekeepingTasks = async (req, res) => {
   try {
-    const { status, priority, assignedTo, room } = req.query;
-    const filter = { deletedAt: null };
+    const { page = 1, limit = 10, status, priority, assignedTo, room } = req.query;
+    const filters = { deletedAt: null };
 
-    if (status) filter.status = status;
-    if (priority) filter.priority = priority;
-    if (assignedTo) filter.assignedTo = assignedTo;
-    if (room) filter.room = room;
+    if (status) filters.status = status;
+    if (priority) filters.priority = priority;
+    if (assignedTo) filters.assignedTo = assignedTo;
+    if (room) filters.room = room;
 
-    const tasks = await Housekeeping.find(filter)
+    // Apply access filters automatically
+    const query = applyAccessFilters(req, filters, 'housekeeping');
+
+    const tasks = await Housekeeping.find(query)
       .populate('room', 'roomNumber roomType floor hotel')
       .populate('assignedTo', 'username email')
       .populate('createdBy', 'username email')
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
       .sort({ priority: -1, scheduledTime: 1 });
+
+    const total = await Housekeeping.countDocuments(query);
 
     res.json({
       success: true,
       data: tasks,
-      count: tasks.length
+      pagination: {
+        total,
+        page: parseInt(page),
+        pages: Math.ceil(total / limit)
+      }
     });
   } catch (error) {
     res.status(500).json({
@@ -57,6 +69,7 @@ const getAllHousekeepingTasks = async (req, res) => {
 
 const getHousekeepingTaskById = async (req, res) => {
   try {
+    // Access already verified by authorize middleware
     const task = await Housekeeping.findOne({
       _id: req.params.id,
       deletedAt: null

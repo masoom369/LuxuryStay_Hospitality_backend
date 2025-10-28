@@ -2,6 +2,7 @@
 // Additional Service Controller
 // ======================
 const { AdditionalService } = require('../models/');
+const { applyAccessFilters } = require('../middleware/auth');
 
 const createServiceRequest = async (req, res) => {
   try {
@@ -31,25 +32,36 @@ const createServiceRequest = async (req, res) => {
 
 const getAllServiceRequests = async (req, res) => {
   try {
-    const { status, serviceType, guest, reservation, assignedTo } = req.query;
-    const filter = { deletedAt: null };
+    const { page = 1, limit = 10, status, serviceType, guest, reservation, assignedTo } = req.query;
+    const filters = { deletedAt: null };
 
-    if (status) filter.status = status;
-    if (serviceType) filter.serviceType = serviceType;
-    if (guest) filter.guest = guest;
-    if (reservation) filter.reservation = reservation;
-    if (assignedTo) filter.assignedTo = assignedTo;
+    if (status) filters.status = status;
+    if (serviceType) filters.serviceType = serviceType;
+    if (guest) filters.guest = guest;
+    if (reservation) filters.reservation = reservation;
+    if (assignedTo) filters.assignedTo = assignedTo;
 
-    const services = await AdditionalService.find(filter)
+    // Apply access filters automatically
+    const query = applyAccessFilters(req, filters, 'service');
+
+    const services = await AdditionalService.find(query)
       .populate('guest', 'username email')
       .populate('reservation', 'reservationId room')
       .populate('assignedTo', 'username email')
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
       .sort({ requestedTime: 1 });
+
+    const total = await AdditionalService.countDocuments(query);
 
     res.json({
       success: true,
       data: services,
-      count: services.length
+      pagination: {
+        total,
+        page: parseInt(page),
+        pages: Math.ceil(total / limit)
+      }
     });
   } catch (error) {
     res.status(500).json({
@@ -62,6 +74,7 @@ const getAllServiceRequests = async (req, res) => {
 
 const getServiceRequestById = async (req, res) => {
   try {
+    // Access already verified by authorize middleware
     const service = await AdditionalService.findOne({
       _id: req.params.id,
       deletedAt: null

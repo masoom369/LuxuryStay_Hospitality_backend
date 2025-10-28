@@ -8,7 +8,7 @@ const { getDashboardStats, getOccupancyReport, getRevenueReport, getGuestReport,
 const { authenticate, authorize } = require('../middleware/auth');
 
 router.use(authenticate);
-router.use(authorize('admin', 'manager'));
+router.use(authorize({ roles: ['admin', 'manager'] }));
 
 router.get('/dashboard', getDashboardStats);
 router.get('/occupancy', getOccupancyReport);

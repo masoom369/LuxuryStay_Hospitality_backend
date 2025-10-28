@@ -2,6 +2,7 @@
 // Feedback Controller
 // ======================
 const { Feedback } = require('../models/');
+const { applyAccessFilters } = require('../middleware/auth');
 
 const createFeedback = async (req, res) => {
   try {
@@ -31,24 +32,35 @@ const createFeedback = async (req, res) => {
 
 const getAllFeedback = async (req, res) => {
   try {
-    const { status, guest, reservation, rating } = req.query;
-    const filter = { deletedAt: null };
+    const { page = 1, limit = 10, status, guest, reservation, rating } = req.query;
+    const filters = { deletedAt: null };
 
-    if (status) filter.status = status;
-    if (guest) filter.guest = guest;
-    if (reservation) filter.reservation = reservation;
-    if (rating) filter.rating = rating;
+    if (status) filters.status = status;
+    if (guest) filters.guest = guest;
+    if (reservation) filters.reservation = reservation;
+    if (rating) filters.rating = rating;
 
-    const feedbacks = await Feedback.find(filter)
+    // Apply access filters automatically
+    const query = applyAccessFilters(req, filters, 'feedback');
+
+    const feedbacks = await Feedback.find(query)
       .populate('guest', 'username email')
       .populate('reservation', 'reservationId checkInDate checkOutDate')
       .populate('response.respondedBy', 'username email')
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
       .sort({ createdAt: -1 });
+
+    const total = await Feedback.countDocuments(query);
 
     res.json({
       success: true,
       data: feedbacks,
-      count: feedbacks.length
+      pagination: {
+        total,
+        page: parseInt(page),
+        pages: Math.ceil(total / limit)
+      }
     });
   } catch (error) {
     res.status(500).json({
@@ -61,6 +73,7 @@ const getAllFeedback = async (req, res) => {
 
 const getFeedbackById = async (req, res) => {
   try {
+    // Access already verified by authorize middleware
     const feedback = await Feedback.findOne({
       _id: req.params.id,
       deletedAt: null

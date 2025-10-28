@@ -2,6 +2,7 @@
 // Hotel Controller
 // ======================
 const { Hotel } = require('../models/');
+const { applyAccessFilters } = require('../middleware/auth');
 
 const createHotel = async (req, res) => {
   try {
@@ -24,19 +25,31 @@ const createHotel = async (req, res) => {
 
 const getAllHotels = async (req, res) => {
   try {
-    const { city, country, isActive } = req.query;
-    const filter = { deletedAt: null };
+    const { page = 1, limit = 10, city, country, isActive } = req.query;
+    const filters = { deletedAt: null };
 
-    if (city) filter['location.city'] = city;
-    if (country) filter['location.country'] = country;
-    if (isActive !== undefined) filter.isActive = isActive;
+    if (city) filters['location.city'] = city;
+    if (country) filters['location.country'] = country;
+    if (isActive !== undefined) filters.isActive = isActive;
 
-    const hotels = await Hotel.find(filter);
+    // Apply access filters automatically
+    const query = applyAccessFilters(req, filters, 'hotel');
+
+    const hotels = await Hotel.find(query)
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
+      .sort({ createdAt: -1 });
+
+    const total = await Hotel.countDocuments(query);
 
     res.json({
       success: true,
       data: hotels,
-      count: hotels.length
+      pagination: {
+        total,
+        page: parseInt(page),
+        pages: Math.ceil(total / limit)
+      }
     });
   } catch (error) {
     res.status(500).json({
@@ -49,6 +62,7 @@ const getAllHotels = async (req, res) => {
 
 const getHotelById = async (req, res) => {
   try {
+    // Access already verified by authorize middleware
     const hotel = await Hotel.findOne({
       _id: req.params.id,
       deletedAt: null

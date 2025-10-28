@@ -11,10 +11,10 @@ const { validateHotel, handleValidationErrors } = require('../middleware/validat
 
 router.use(authenticate);
 
-router.post('/', authorize('admin'), validateHotel, handleValidationErrors, createHotel);
-router.get('/', getAllHotels);
-router.get('/:id', getHotelById);
-router.put('/:id', authorize('admin'), updateHotel);
-router.delete('/:id', authorize('admin'), deleteHotel);
+router.post('/', authorize({ roles: ['admin'], resource: 'hotel' }), validateHotel, handleValidationErrors, createHotel);
+router.get('/', authorize({ roles: ['admin', 'manager', 'receptionist'], resource: 'hotel' }), getAllHotels);
+router.get('/:id', authorize({ roles: ['admin', 'manager', 'receptionist'], resource: 'hotel' }), getHotelById);
+router.put('/:id', authorize({ roles: ['admin'], resource: 'hotel' }), updateHotel);
+router.delete('/:id', authorize({ roles: ['admin'], resource: 'hotel' }), deleteHotel);
 
 module.exports = router;

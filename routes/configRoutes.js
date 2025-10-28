@@ -8,7 +8,7 @@ const { createConfig, getAllConfigs, getConfigByKey, updateConfig, deleteConfig 
 const { authenticate, authorize } = require('../middleware/auth');
 
 router.use(authenticate);
-router.use(authorize('admin'));
+router.use(authorize({ roles: ['admin'], resource: 'config' }));
 
 router.post('/', createConfig);
 router.get('/', getAllConfigs);

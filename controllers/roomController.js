@@ -2,6 +2,7 @@
 // Room Controller
 // ======================
 const { Room, Reservation } = require('../models/');
+const { applyAccessFilters } = require('../middleware/auth');
 
 const createRoom = async (req, res) => {
   try {
@@ -24,20 +25,33 @@ const createRoom = async (req, res) => {
 
 const getAllRooms = async (req, res) => {
   try {
-    const { hotel, roomType, status, floor } = req.query;
-    const filter = { deletedAt: null };
+    const { page = 1, limit = 10, hotel, roomType, status, floor } = req.query;
+    const filters = { deletedAt: null };
 
-    if (hotel) filter.hotel = hotel;
-    if (roomType) filter.roomType = roomType;
-    if (status) filter.status = status;
-    if (floor) filter.floor = floor;
+    if (hotel) filters.hotel = hotel;
+    if (roomType) filters.roomType = roomType;
+    if (status) filters.status = status;
+    if (floor) filters.floor = floor;
 
-    const rooms = await Room.find(filter).populate('hotel', 'name location');
+    // Apply access filters automatically
+    const query = applyAccessFilters(req, filters, 'room');
+
+    const rooms = await Room.find(query)
+      .populate('hotel', 'name location')
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
+      .sort({ roomNumber: 1 });
+
+    const total = await Room.countDocuments(query);
 
     res.json({
       success: true,
       data: rooms,
-      count: rooms.length
+      pagination: {
+        total,
+        page: parseInt(page),
+        pages: Math.ceil(total / limit)
+      }
     });
   } catch (error) {
     res.status(500).json({
@@ -50,6 +64,7 @@ const getAllRooms = async (req, res) => {
 
 const getRoomById = async (req, res) => {
   try {
+    // Access already verified by authorize middleware
     const room = await Room.findOne({
       _id: req.params.id,
       deletedAt: null

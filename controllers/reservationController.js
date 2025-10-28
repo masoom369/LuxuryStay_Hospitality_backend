@@ -2,6 +2,7 @@
 // Reservation Controller
 // ======================
 const { Reservation, Room, User, Housekeeping } = require('../models/');
+const { applyAccessFilters } = require('../middleware/auth');
 
 const createReservation = async (req, res) => {
   try {
@@ -81,25 +82,36 @@ const createReservation = async (req, res) => {
 
 const getAllReservations = async (req, res) => {
   try {
-    const { status, guest, room, checkInDate, checkOutDate } = req.query;
-    const filter = { deletedAt: null };
+    const { page = 1, limit = 10, status, guest, room, checkInDate, checkOutDate } = req.query;
+    const filters = { deletedAt: null };
 
-    if (status) filter.status = status;
-    if (guest) filter.guest = guest;
-    if (room) filter.room = room;
-    if (checkInDate) filter.checkInDate = { $gte: new Date(checkInDate) };
-    if (checkOutDate) filter.checkOutDate = { $lte: new Date(checkOutDate) };
+    if (status) filters.status = status;
+    if (guest) filters.guest = guest;
+    if (room) filters.room = room;
+    if (checkInDate) filters.checkInDate = { $gte: new Date(checkInDate) };
+    if (checkOutDate) filters.checkOutDate = { $lte: new Date(checkOutDate) };
 
-    const reservations = await Reservation.find(filter)
+    // Apply access filters automatically
+    const query = applyAccessFilters(req, filters, 'reservation');
+
+    const reservations = await Reservation.find(query)
       .populate('guest', 'username email')
       .populate('room', 'roomNumber roomType hotel')
       .populate('createdBy', 'username email')
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
       .sort({ createdAt: -1 });
+
+    const total = await Reservation.countDocuments(query);
 
     res.json({
       success: true,
       data: reservations,
-      count: reservations.length
+      pagination: {
+        total,
+        page: parseInt(page),
+        pages: Math.ceil(total / limit)
+      }
     });
   } catch (error) {
     res.status(500).json({
@@ -112,6 +124,7 @@ const getAllReservations = async (req, res) => {
 
 const getReservationById = async (req, res) => {
   try {
+    // Access already verified by authorize middleware
     const reservation = await Reservation.findOne({
       _id: req.params.id,
       deletedAt: null

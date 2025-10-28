@@ -9,11 +9,11 @@ const { authenticate, authorize } = require('../middleware/auth');
 
 router.use(authenticate);
 
-router.post('/', createServiceRequest);
-router.get('/', getAllServiceRequests);
-router.get('/:id', getServiceRequestById);
-router.put('/:id', authorize('admin', 'manager', 'receptionist'), updateServiceRequest);
-router.post('/:id/assign', authorize('admin', 'manager'), assignService);
-router.post('/:id/complete', authorize('admin', 'manager'), completeService);
+router.post('/', authorize({ roles: ['admin', 'guest'], resource: 'service', ownerField: 'guest' }), createServiceRequest);
+router.get('/', authorize({ roles: ['admin', 'manager', 'receptionist', 'guest'], resource: 'service', ownerField: 'guest' }), getAllServiceRequests);
+router.get('/:id', authorize({ roles: ['admin', 'manager', 'receptionist', 'guest'], resource: 'service', ownerField: 'guest' }), getServiceRequestById);
+router.put('/:id', authorize({ roles: ['admin', 'manager', 'receptionist'], resource: 'service', ownerField: 'guest' }), updateServiceRequest);
+router.post('/:id/assign', authorize({ roles: ['admin', 'manager'], resource: 'service', ownerField: 'guest' }), assignService);
+router.post('/:id/complete', authorize({ roles: ['admin', 'manager'], resource: 'service', ownerField: 'guest' }), completeService);
 
 module.exports = router;

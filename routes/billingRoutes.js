@@ -9,10 +9,10 @@ const { authenticate, authorize } = require('../middleware/auth');
 
 router.use(authenticate);
 
-router.post('/', authorize('admin', 'manager', 'receptionist'), createBill);
-router.get('/', getAllBills);
-router.get('/:id', getBillById);
-router.put('/:id', authorize('admin', 'manager', 'receptionist'), updateBill);
-router.post('/:id/payment', authorize('admin', 'manager', 'receptionist'), recordPayment);
+router.post('/', authorize({ roles: ['admin', 'manager', 'receptionist'], resource: 'billing', ownerField: 'guest', populatePath: 'reservation.room' }), createBill);
+router.get('/', authorize({ roles: ['admin', 'manager', 'receptionist', 'guest'], resource: 'billing', ownerField: 'guest', populatePath: 'reservation.room' }), getAllBills);
+router.get('/:id', authorize({ roles: ['admin', 'manager', 'receptionist', 'guest'], resource: 'billing', ownerField: 'guest', populatePath: 'reservation.room' }), getBillById);
+router.put('/:id', authorize({ roles: ['admin', 'manager', 'receptionist'], resource: 'billing', ownerField: 'guest', populatePath: 'reservation.room' }), updateBill);
+router.post('/:id/payment', authorize({ roles: ['admin', 'manager', 'receptionist'], resource: 'billing', ownerField: 'guest', populatePath: 'reservation.room' }), recordPayment);
 
 module.exports = router;

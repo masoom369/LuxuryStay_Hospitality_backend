@@ -2,6 +2,7 @@
 // Analytics & Reports Controller
 // ======================
 const { Room, Reservation, Billing, Housekeeping, Maintenance, Feedback, User } = require('../models/');
+const { applyAccessFilters } = require('../middleware/auth');
 
 
 const getDashboardStats = async (req, res) => {
@@ -12,26 +13,21 @@ const getDashboardStats = async (req, res) => {
     if (startDate) dateFilter.$gte = new Date(startDate);
     if (endDate) dateFilter.$lte = new Date(endDate);
 
+    // Apply access filters for rooms
+    const roomFilters = { deletedAt: null, isActive: true };
+    if (hotel) roomFilters.hotel = hotel;
+    const roomQuery = applyAccessFilters(req, roomFilters, 'room');
+
     // Total rooms
-    const totalRooms = await Room.countDocuments({
-      hotel,
-      deletedAt: null,
-      isActive: true
-    });
+    const totalRooms = await Room.countDocuments(roomQuery);
 
     // Occupied rooms
-    const occupiedRooms = await Room.countDocuments({
-      hotel,
-      status: 'occupied',
-      deletedAt: null
-    });
+    const occupiedRoomFilters = { ...roomQuery, status: 'occupied' };
+    const occupiedRooms = await Room.countDocuments(occupiedRoomFilters);
 
     // Available rooms
-    const availableRooms = await Room.countDocuments({
-      hotel,
-      status: 'available',
-      deletedAt: null
-    });
+    const availableRoomFilters = { ...roomQuery, status: 'available' };
+    const availableRooms = await Room.countDocuments(availableRoomFilters);
 
     // Occupancy rate
     const occupancyRate = totalRooms > 0 ? (occupiedRooms / totalRooms * 100).toFixed(2) : 0;
@@ -156,11 +152,12 @@ const getOccupancyReport = async (req, res) => {
   try {
     const { hotel, startDate, endDate } = req.query;
 
-    const rooms = await Room.find({
-      hotel,
-      deletedAt: null,
-      isActive: true
-    });
+    // Apply access filters for rooms
+    const roomFilters = { deletedAt: null, isActive: true };
+    if (hotel) roomFilters.hotel = hotel;
+    const roomQuery = applyAccessFilters(req, roomFilters, 'room');
+
+    const rooms = await Room.find(roomQuery);
 
     const totalRooms = rooms.length;
 

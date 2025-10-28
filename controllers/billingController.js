@@ -2,6 +2,7 @@
 // Billing Controller
 // ======================
 const { Billing, Reservation } = require('../models/');
+const { applyAccessFilters } = require('../middleware/auth');
 
 const createBill = async (req, res) => {
   try {
@@ -49,23 +50,34 @@ const createBill = async (req, res) => {
 
 const getAllBills = async (req, res) => {
   try {
-    const { paymentStatus, guest, reservation } = req.query;
-    const filter = { deletedAt: null };
+    const { page = 1, limit = 10, paymentStatus, guest, reservation } = req.query;
+    const filters = { deletedAt: null };
 
-    if (paymentStatus) filter.paymentStatus = paymentStatus;
-    if (guest) filter.guest = guest;
-    if (reservation) filter.reservation = reservation;
+    if (paymentStatus) filters.paymentStatus = paymentStatus;
+    if (guest) filters.guest = guest;
+    if (reservation) filters.reservation = reservation;
 
-    const bills = await Billing.find(filter)
+    // Apply access filters automatically
+    const query = applyAccessFilters(req, filters, 'billing');
+
+    const bills = await Billing.find(query)
       .populate('guest', 'username email')
       .populate('reservation', 'reservationId checkInDate checkOutDate')
       .populate('generatedBy', 'username email')
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
       .sort({ createdAt: -1 });
+
+    const total = await Billing.countDocuments(query);
 
     res.json({
       success: true,
       data: bills,
-      count: bills.length
+      pagination: {
+        total,
+        page: parseInt(page),
+        pages: Math.ceil(total / limit)
+      }
     });
   } catch (error) {
     res.status(500).json({
@@ -78,6 +90,7 @@ const getAllBills = async (req, res) => {
 
 const getBillById = async (req, res) => {
   try {
+    // Access already verified by authorize middleware
     const bill = await Billing.findOne({
       _id: req.params.id,
       deletedAt: null

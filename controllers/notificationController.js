@@ -2,6 +2,7 @@
 // Notification Controller
 // ======================
 const { Notification } = require('../models/');
+const { applyAccessFilters } = require('../middleware/auth');
 
 const createNotification = async (req, res) => {
   try {
@@ -24,25 +25,35 @@ const createNotification = async (req, res) => {
 
 const getMyNotifications = async (req, res) => {
   try {
-    const { isRead, type, priority } = req.query;
-    const filter = {
+    const { page = 1, limit = 10, isRead, type, priority } = req.query;
+    const filters = {
       recipient: req.user.userId,
       deletedAt: null
     };
 
-    if (isRead !== undefined) filter.isRead = isRead;
-    if (type) filter.type = type;
-    if (priority) filter.priority = priority;
+    if (isRead !== undefined) filters.isRead = isRead;
+    if (type) filters.type = type;
+    if (priority) filters.priority = priority;
 
-    const notifications = await Notification.find(filter)
+    // Apply access filters automatically
+    const query = applyAccessFilters(req, filters, 'notification');
+
+    const notifications = await Notification.find(query)
       .populate('hotel', 'name')
-      .sort({ createdAt: -1 })
-      .limit(50);
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
+      .sort({ createdAt: -1 });
+
+    const total = await Notification.countDocuments(query);
 
     res.json({
       success: true,
       data: notifications,
-      count: notifications.length
+      pagination: {
+        total,
+        page: parseInt(page),
+        pages: Math.ceil(total / limit)
+      }
     });
   } catch (error) {
     res.status(500).json({
