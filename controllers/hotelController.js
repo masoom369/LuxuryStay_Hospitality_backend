@@ -1,84 +1,133 @@
-const Hotel = require('../models/Hotel');
+// ======================
+// Hotel Controller
+// ======================
+const { Hotel } = require('../models/');
 
 const createHotel = async (req, res) => {
   try {
-    const hotel = await Hotel.create(req.body);
-    res.status(201).json({ success: true, data: hotel });
-  } catch (err) {
-    res.status(400).json({ success: false, message: err.message });
+    const hotel = new Hotel(req.body);
+    await hotel.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Hotel created successfully',
+      data: hotel
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Hotel creation failed',
+      error: error.message
+    });
   }
 };
 
 const getAllHotels = async (req, res) => {
   try {
-    const hotels = await Hotel.find({ deletedAt: { $exists: false } });
-    res.status(200).json({ success: true, data: hotels });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
+    const { city, country, isActive } = req.query;
+    const filter = { deletedAt: null };
 
-const updateHotel = async (req, res) => {
-  try {
-    const hotel = await Hotel.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    );
-    if (!hotel) return res.status(404).json({ success: false, message: 'Hotel not found' });
-    res.status(200).json({ success: true, data: hotel });
-  } catch (err) {
-    res.status(400).json({ success: false, message: err.message });
+    if (city) filter['location.city'] = city;
+    if (country) filter['location.country'] = country;
+    if (isActive !== undefined) filter.isActive = isActive;
+
+    const hotels = await Hotel.find(filter);
+
+    res.json({
+      success: true,
+      data: hotels,
+      count: hotels.length
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch hotels',
+      error: error.message
+    });
   }
 };
 
 const getHotelById = async (req, res) => {
   try {
-    const hotel = await Hotel.findById(req.params.id);
-    if (!hotel) return res.status(404).json({ success: false, message: 'Hotel not found' });
-    res.status(200).json({ success: true, data: hotel });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    const hotel = await Hotel.findOne({
+      _id: req.params.id,
+      deletedAt: null
+    });
+
+    if (!hotel) {
+      return res.status(404).json({
+        success: false,
+        message: 'Hotel not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: hotel
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch hotel',
+      error: error.message
+    });
   }
 };
 
-const deactivateHotel = async (req, res) => {
+const updateHotel = async (req, res) => {
   try {
-    const hotel = await Hotel.findByIdAndUpdate(
-      req.params.id,
-      { deletedAt: new Date() },
-      { new: true }
+    const hotel = await Hotel.findOneAndUpdate(
+      { _id: req.params.id, deletedAt: null },
+      req.body,
+      { new: true, runValidators: true }
     );
-    if (!hotel) return res.status(404).json({ success: false, message: 'Hotel not found' });
-    res.status(200).json({ success: true, message: 'Hotel soft deleted' });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+
+    if (!hotel) {
+      return res.status(404).json({
+        success: false,
+        message: 'Hotel not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Hotel updated successfully',
+      data: hotel
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Hotel update failed',
+      error: error.message
+    });
   }
 };
 
 const deleteHotel = async (req, res) => {
   try {
-    const hotel = await Hotel.findByIdAndDelete(req.params.id);
-    if (!hotel) return res.status(404).json({ success: false, message: 'Hotel not found' });
-    res.status(200).json({ success: true, message: 'Hotel permanently deleted' });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
-
-const updateHotelSettings = async (req, res) => {
-  try {
-    // For system configuration, update hotel settings like rates, policies, taxes
-    // Since model doesn't have these, assume req.body contains settings to update
-    const hotel = await Hotel.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
+    const hotel = await Hotel.findOneAndUpdate(
+      { _id: req.params.id, deletedAt: null },
+      { deletedAt: new Date(), isActive: false },
+      { new: true }
     );
-    if (!hotel) return res.status(404).json({ success: false, message: 'Hotel not found' });
-    res.status(200).json({ success: true, message: 'Hotel settings updated', data: hotel });
-  } catch (err) {
-    res.status(400).json({ success: false, message: err.message });
+
+    if (!hotel) {
+      return res.status(404).json({
+        success: false,
+        message: 'Hotel not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Hotel deleted successfully'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Hotel deletion failed',
+      error: error.message
+    });
   }
 };
 
@@ -87,7 +136,5 @@ module.exports = {
   getAllHotels,
   getHotelById,
   updateHotel,
-  deactivateHotel,
-  deleteHotel,
-  updateHotelSettings
+  deleteHotel
 };

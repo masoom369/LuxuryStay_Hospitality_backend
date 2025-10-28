@@ -1,21 +1,20 @@
+
+// ==========================================
+// routes/hotelRoutes.js
+// ==========================================
+
 const express = require('express');
 const router = express.Router();
-const {
-  createHotel,
-  getAllHotels,
-  getHotelById,
-  updateHotel,
-  deactivateHotel,
-  updateHotelSettings
-} = require('../controllers/hotelController');
+const { createHotel, getAllHotels, getHotelById, updateHotel, deleteHotel } = require('../controllers/hotelController');
 const { authenticate, authorize } = require('../middleware/auth');
+const { validateHotel, handleValidationErrors } = require('../middleware/validation');
 
-// Routes
-router.get('/', getAllHotels); // Public for viewing hotels
-router.get('/:id', getHotelById); // Public for viewing specific hotel
-router.post('/', authenticate, authorize('admin'), createHotel);
-router.put('/:id', authenticate, authorize('admin', 'manager'), updateHotel);
-router.delete('/:id', authenticate, authorize('admin'), deactivateHotel);
-router.patch('/:id/settings', authenticate, authorize('admin', 'manager'), updateHotelSettings);
+router.use(authenticate);
+
+router.post('/', authorize('admin'), validateHotel, handleValidationErrors, createHotel);
+router.get('/', getAllHotels);
+router.get('/:id', getHotelById);
+router.put('/:id', authorize('admin'), updateHotel);
+router.delete('/:id', authorize('admin'), deleteHotel);
 
 module.exports = router;

@@ -1,152 +1,157 @@
-const Notification = require('../models/Notification');
-const User = require('../models/User');
-const nodemailer = require('nodemailer');
+// ======================
+// Notification Controller
+// ======================
+const { Notification } = require('../models/');
 
 const createNotification = async (req, res) => {
   try {
-    const notification = await Notification.create(req.body);
-    res.status(201).json({ success: true, data: notification });
-  } catch (err) {
-    res.status(400).json({ success: false, message: err.message });
+    const notification = new Notification(req.body);
+    await notification.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Notification created successfully',
+      data: notification
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Notification creation failed',
+      error: error.message
+    });
   }
 };
 
-const getAllNotifications = async (req, res) => {
+const getMyNotifications = async (req, res) => {
   try {
-    const notifications = await Notification.find({ deletedAt: { $exists: false } })
-      .populate('recipient', 'name email')
-      .sort({ createdAt: -1 });
-    res.status(200).json({ success: true, data: notifications });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
+    const { isRead, type, priority } = req.query;
+    const filter = {
+      recipient: req.user.userId,
+      deletedAt: null
+    };
 
-const getNotificationById = async (req, res) => {
-  try {
-    const notification = await Notification.findById(req.params.id)
-      .populate('recipient', 'name email');
-    if (!notification) return res.status(404).json({ success: false, message: 'Notification not found' });
-    res.status(200).json({ success: true, data: notification });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
+    if (isRead !== undefined) filter.isRead = isRead;
+    if (type) filter.type = type;
+    if (priority) filter.priority = priority;
 
-const updateNotification = async (req, res) => {
-  try {
-    const notification = await Notification.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    );
-    if (!notification) return res.status(404).json({ success: false, message: 'Notification not found' });
-    res.status(200).json({ success: true, data: notification });
-  } catch (err) {
-    res.status(400).json({ success: false, message: err.message });
-  }
-};
+    const notifications = await Notification.find(filter)
+      .populate('hotel', 'name')
+      .sort({ createdAt: -1 })
+      .limit(50);
 
-const deactivateNotification = async (req, res) => {
-  try {
-    const notification = await Notification.findByIdAndUpdate(
-      req.params.id,
-      { deletedAt: new Date() },
-      { new: true }
-    );
-    if (!notification) return res.status(404).json({ success: false, message: 'Notification not found' });
-    res.status(200).json({ success: true, message: 'Notification soft deleted' });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
-
-const deleteNotification = async (req, res) => {
-  try {
-    const notification = await Notification.findByIdAndDelete(req.params.id);
-    if (!notification) return res.status(404).json({ success: false, message: 'Notification not found' });
-    res.status(200).json({ success: true, message: 'Notification permanently deleted' });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
-
-const getNotifications = async (req, res) => {
-  try {
-    const notifications = await Notification.find({ recipient: req.params.userId })
-      .sort({ createdAt: -1 });
-    res.status(200).json({ success: true, data: notifications });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.json({
+      success: true,
+      data: notifications,
+      count: notifications.length
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch notifications',
+      error: error.message
+    });
   }
 };
 
 const markAsRead = async (req, res) => {
   try {
-    const notification = await Notification.findByIdAndUpdate(
-      req.params.id,
-      { isRead: true },
+    const notification = await Notification.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        recipient: req.user.userId,
+        deletedAt: null
+      },
+      {
+        isRead: true,
+        readAt: new Date()
+      },
       { new: true }
     );
-    if (!notification) return res.status(404).json({ success: false, message: 'Notification not found' });
-    res.status(200).json({ success: true, data: notification });
-  } catch (err) {
-    res.status(400).json({ success: false, message: err.message });
+
+    if (!notification) {
+      return res.status(404).json({
+        success: false,
+        message: 'Notification not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Notification marked as read',
+      data: notification
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to mark notification as read',
+      error: error.message
+    });
   }
 };
 
-const sendNotificationEmail = async (req, res) => {
+const markAllAsRead = async (req, res) => {
   try {
-    const notification = await Notification.findById(req.params.id).populate('recipient', 'email name');
-    if (!notification) return res.status(404).json({ success: false, message: 'Notification not found' });
-
-    const transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,
-      port: process.env.EMAIL_PORT || 587,
-      secure: false,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
+    await Notification.updateMany(
+      {
+        recipient: req.user.userId,
+        isRead: false,
+        deletedAt: null
+      },
+      {
+        isRead: true,
+        readAt: new Date()
       }
+    );
+
+    res.json({
+      success: true,
+      message: 'All notifications marked as read'
     });
-
-    const mailOptions = {
-      from: process.env.EMAIL_FROM,
-      to: notification.recipient.email,
-      subject: 'Hotel Notification',
-      text: notification.message
-    };
-
-    await transporter.sendMail(mailOptions);
-    res.status(200).json({ success: true, message: 'Notification email sent' });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to mark notifications as read',
+      error: error.message
+    });
   }
 };
 
-const triggerNotification = async (type, userId, message) => {
+const deleteNotification = async (req, res) => {
   try {
-    await Notification.create({
-      recipient: userId,
-      message,
-      type
+    const notification = await Notification.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        recipient: req.user.userId,
+        deletedAt: null
+      },
+      { deletedAt: new Date() },
+      { new: true }
+    );
+
+    if (!notification) {
+      return res.status(404).json({
+        success: false,
+        message: 'Notification not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Notification deleted successfully'
     });
-    // Optionally send email
-  } catch (err) {
-    console.error('Error triggering notification:', err);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Notification deletion failed',
+      error: error.message
+    });
   }
 };
 
 module.exports = {
   createNotification,
-  getAllNotifications,
-  getNotificationById,
-  updateNotification,
-  deactivateNotification,
-  deleteNotification,
-  getNotifications,
+  getMyNotifications,
   markAsRead,
-  createNotification,
-  sendNotificationEmail,
-  triggerNotification
+  markAllAsRead,
+  deleteNotification
 };

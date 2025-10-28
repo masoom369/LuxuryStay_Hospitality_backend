@@ -1,86 +1,76 @@
+// server.js - Hotel Management System Main Server
 const express = require('express');
 const cors = require('cors');
-const dotenv = require('dotenv');
-const connectDB = require('./config/db');
+const { connectDatabase } = require('./config/db');
+const { setupApiRoutes } = require('./config/api');
+const apiRoutes = require('./routes/');
+require('dotenv').config();
+// Import middleware
+const { errorHandler, notFound } = require('./middleware/errorHandler');
 
-// Load environment variables
-dotenv.config();
-
+// Initialize Express app
 const app = express();
 
-// Connect to database
-connectDB();
-
-// Middleware
+// CORS Configuration
 app.use(cors());
-app.use(express.json());
 
-// Logging middleware for debugging request bodies
+// Body parsers
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Custom request logger
 app.use((req, res, next) => {
-  console.log(`Incoming ${req.method} request to ${req.url}`);
-  console.log('Request body:', req.body);
+  req.requestTime = new Date().toISOString();
+  console.log(`[${req.requestTime}] ${req.method} ${req.originalUrl}`);
   next();
 });
 
-// Routes
-const userRoutes = require('./routes/userRoutes');
-const roomRoutes = require('./routes/roomRoutes');
-const bookingRoutes = require('./routes/bookingRoutes');
-const invoiceRoutes = require('./routes/invoiceRoutes');
-const housekeepingTaskRoutes = require('./routes/housekeepingTaskRoutes');
-const maintenanceRequestRoutes = require('./routes/maintenanceRequestRoutes');
-const reportingRoutes = require('./routes/reportingRoutes');
-const feedbackRoutes = require('./routes/feedbackRoutes');
-const serviceRequestRoutes = require('./routes/serviceRequestRoutes');
-const serviceCatalogRoutes = require('./routes/serviceCatalogRoutes');
-const notificationRoutes = require('./routes/notificationRoutes');
-const hotelRoutes = require('./routes/hotelRoutes');
-const contactUsRoutes = require('./routes/contactUsRoutes');
+// Connect to database
+connectDatabase();
 
-// Use routes
-app.use('/api/users', userRoutes);
-app.use('/api/rooms', roomRoutes);
-app.use('/api/bookings', bookingRoutes);
-app.use('/api/invoices', invoiceRoutes);
-app.use('/api/housekeeping', housekeepingTaskRoutes);
-app.use('/api/maintenance', maintenanceRequestRoutes);
-app.use('/api/reports', reportingRoutes);
-app.use('/api/feedback', feedbackRoutes);
-app.use('/api/services', serviceRequestRoutes);
-app.use('/api/service-catalog', serviceCatalogRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/hotels', hotelRoutes);
-app.use('/api/contact', contactUsRoutes);
+// Setup health check and API info routes
+setupApiRoutes(app);
 
-// Basic route
-app.get('/', (req, res) => {
-  res.json({ message: 'Welcome to LuxuryStay Hospitality API' });
+// Mount all routes
+app.use('/api', apiRoutes);
+
+// 404 handler - Must be after all other routes
+app.use(notFound);
+
+// Global error handler - Must be last
+app.use(errorHandler);
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('💥 Uncaught Exception:', error);
+  console.error('Stack:', error.stack);
+  process.exit(1);
 });
 
-// -----------------------------
-// 404 Handler (Not Found)
-// -----------------------------
-app.use((req, res, next) => {
-  res.status(404).json({
-    success: false,
-    message: `Route ${req.originalUrl} not found`
-  });
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('💥 Unhandled Rejection at:', promise);
+  console.error('Reason:', reason);
+  process.exit(1);
 });
 
-// -----------------------------
-// Global Error Handler
-// -----------------------------
-app.use((err, req, res, next) => {
-  console.error('🔥 Error:', err.stack);
-  res.status(err.statusCode || 500).json({
-    success: false,
-    message: err.message || 'Internal Server Error',
-  });
+// ==============================================
+// START SERVER
+// ==============================================
+
+const PORT = process.env.PORT || 5000;
+
+const server = app.listen(PORT, () => {
+  console.log('Hotel Management System Server Started');
+  console.log(`Server URL: http://localhost:${PORT}`);
 });
 
-// Port
-const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, () => {
-  console.log(`✅ Server running on port ${PORT}`);
+// Handle server errors
+server.on('error', (error) => {
+  if (error.code === 'EADDRINUSE') {
+    console.error(`Port ${PORT} is already in use`);
+  } else {
+    console.error('Server error:', error);
+  }
+  process.exit(1);
 });
