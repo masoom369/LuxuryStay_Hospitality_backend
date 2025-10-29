@@ -283,10 +283,9 @@ module.exports = {
 
 /*
 CONFIGURATION OPTIONS:
-
 authorize({
   roles: [],           // Array of allowed roles (empty = all authenticated users)
-  resource: null,      // Resource name: 'hotel', 'room', 'reservation', 'billing', etc.
+  resource: null,      // Resource name: 'hotel', 'room', 'reservation', etc.
   ownerField: null,    // Field for ownership: 'guest', 'user', '_id'
   hotelField: 'hotel', // Field containing hotel reference (default: 'hotel')
   populatePath: null   // Nested path to hotel: 'room', 'room.hotel', 'reservation.room'
@@ -299,203 +298,10 @@ HOW IT WORKS:
 - List operations: Adds req.accessFilter (use applyAccessFilters() in controller)
 - Item operations: Pre-validates access before controller runs
 
-WHEN TO USE WHAT:
-- Direct hotel resource → resource: 'hotel'
-- Room resource → resource: 'room' (has direct hotel field)
-- Reservation → resource: 'reservation', populatePath: 'room' (hotel via room)
-- Billing → resource: 'billing', ownerField: 'guest', populatePath: 'reservation.room'
-- User profile → resource: 'user', ownerField: '_id'
-*/
-
-// ======================
-// ROUTE EXAMPLES
-// ======================
-
-/*
-// ===== Hotel Routes =====
-router.get('/hotels', 
-  authenticate,
-  authorize({ 
-    roles: ['admin', 'manager', 'receptionist'],
-    resource: 'hotel'
-  }),
-  hotelController.list
-);
-
-router.get('/hotels/:id',
-  authenticate,
-  authorize({
-    roles: ['admin', 'manager', 'receptionist'],
-    resource: 'hotel'
-  }),
-  hotelController.getById
-);
-
-// ===== Room Routes =====
-router.get('/rooms',
-  authenticate,
-  authorize({
-    roles: ['admin', 'manager', 'receptionist', 'housekeeping'],
-    resource: 'room'
-  }),
-  roomController.list
-);
-
-router.put('/rooms/:id',
-  authenticate,
-  authorize({
-    roles: ['admin', 'manager'],
-    resource: 'room'
-  }),
-  roomController.update
-);
-
-// ===== Reservation Routes =====
-router.get('/reservations',
-  authenticate,
-  authorize({
-    roles: ['admin', 'manager', 'receptionist', 'guest'],
-    resource: 'reservation',
-    ownerField: 'guest',
-    populatePath: 'room'
-  }),
-  reservationController.list
-);
-
-router.get('/reservations/:id',
-  authenticate,
-  authorize({
-    roles: ['admin', 'manager', 'receptionist', 'guest'],
-    resource: 'reservation',
-    ownerField: 'guest',
-    populatePath: 'room'
-  }),
-  reservationController.getById
-);
-
-// ===== Billing Routes =====
-router.get('/bills',
-  authenticate,
-  authorize({
-    roles: ['admin', 'manager', 'receptionist', 'guest'],
-    resource: 'billing',
-    ownerField: 'guest',
-    populatePath: 'reservation.room'
-  }),
-  billingController.list
-);
-
-// ===== Housekeeping Routes =====
-router.get('/housekeeping',
-  authenticate,
-  authorize({
-    roles: ['admin', 'manager', 'housekeeping'],
-    resource: 'housekeeping',
-    populatePath: 'room'
-  }),
-  housekeepingController.list
-);
-
-router.patch('/housekeeping/:id/status',
-  authenticate,
-  authorize({
-    roles: ['admin', 'housekeeping'],
-    resource: 'housekeeping',
-    populatePath: 'room'
-  }),
-  housekeepingController.updateStatus
-);
-
-// ===== Maintenance Routes =====
-router.post('/maintenance',
-  authenticate,
-  authorize({
-    roles: ['admin', 'manager', 'maintenance']
-  }),
-  maintenanceController.create
-);
-
-router.get('/maintenance/:id',
-  authenticate,
-  authorize({
-    roles: ['admin', 'manager', 'maintenance'],
-    resource: 'maintenance',
-    populatePath: 'room'
-  }),
-  maintenanceController.getById
-);
-
-// ===== Service Routes =====
-router.post('/services',
-  authenticate,
-  authorize({
-    roles: ['admin', 'guest'],
-    resource: 'service',
-    ownerField: 'guest'
-  }),
-  serviceController.create
-);
-
-// ===== Feedback Routes =====
-router.get('/feedback',
-  authenticate,
-  authorize({
-    roles: ['admin', 'manager', 'guest'],
-    resource: 'feedback',
-    ownerField: 'guest',
-    populatePath: 'reservation'
-  }),
-  feedbackController.list
-);
-
-// ===== Notification Routes =====
-router.get('/notifications',
-  authenticate,
-  authorize({
-    roles: ['admin', 'manager', 'receptionist', 'housekeeping', 'maintenance', 'guest'],
-    resource: 'notification',
-    ownerField: 'recipient'
-  }),
-  notificationController.list
-);
-
-// ===== User Routes =====
-router.get('/users',
-  authenticate,
-  authorize({
-    roles: ['admin', 'manager']
-  }),
-  userController.list
-);
-
-router.get('/users/:id',
-  authenticate,
-  authorize({
-    roles: ['admin', 'manager', 'guest'],
-    resource: 'user',
-    ownerField: '_id' // Special case: user accessing their own profile
-  }),
-  userController.getById
-);
-
-// ===== Config Routes =====
-router.get('/configs',
-  authenticate,
-  authorize({
-    roles: ['admin', 'manager'],
-    resource: 'config'
-  }),
-  configController.list
-);
-
-router.get('/configs/:id',
-  authenticate,
-  authorize({
-    roles: ['admin', 'manager'],
-    resource: 'config'
-  }),
-  configController.getById
-);
+EXAMPLES:
+- Hotel routes: authorize({ roles: ['admin', 'manager'], resource: 'hotel' })
+- Guest reservations: authorize({ roles: ['guest'], resource: 'reservation', ownerField: 'guest', populatePath: 'room' })
+- User profile: authorize({ roles: ['guest'], resource: 'user', ownerField: '_id' })
 */
 
 // ======================
@@ -503,58 +309,16 @@ router.get('/configs/:id',
 // ======================
 
 /*
-// Example: List Controller
+// List Controller Example
 exports.list = async (req, res) => {
-  try {
-    const { page = 1, limit = 10, ...filters } = req.query;
-    
-    // Apply access filters automatically
-    const query = applyAccessFilters(req, filters);
-    
-    const items = await Model.find(query)
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .sort({ createdAt: -1 });
-    
-    const total = await Model.countDocuments(query);
-    
-    res.json({
-      success: true,
-      data: items,
-      pagination: {
-        total,
-        page: parseInt(page),
-        pages: Math.ceil(total / limit)
-      }
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch items',
-      error: error.message
-    });
-  }
+  const query = applyAccessFilters(req, req.query); // Apply access filters
+  const items = await Model.find(query).sort({ createdAt: -1 });
+  res.json({ success: true, data: items });
 };
 
-// Example: GetById Controller
+// GetById Controller Example
 exports.getById = async (req, res) => {
-  try {
-    // Access already verified by authorize middleware
-    const item = await Model.findOne({
-      _id: req.params.id,
-      deletedAt: null
-    });
-    
-    res.json({
-      success: true,
-      data: item
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch item',
-      error: error.message
-    });
-  }
+  const item = await Model.findOne({ _id: req.params.id, deletedAt: null });
+  res.json({ success: true, data: item });
 };
 */
