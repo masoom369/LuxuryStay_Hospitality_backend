@@ -58,6 +58,15 @@ const userSchema = new mongoose.Schema({
     }
   ],
 
+  resetPasswordToken: {
+    type: String,
+    select: false  // Don't return in queries by default
+  },
+  resetPasswordExpires: {
+    type: Date,
+    select: false
+  },
+
   // Status
   isActive: { type: Boolean, default: true },
   deletedAt: Date
