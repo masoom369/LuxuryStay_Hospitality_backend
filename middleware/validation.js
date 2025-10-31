@@ -22,8 +22,7 @@ const handleValidationErrors = (req, res, next) => {
 const validateUserRegistration = [
   body('username').trim().notEmpty().withMessage('First username is required'),
   body('password').trim().notEmpty().withMessage('Last name is required'),
-  body('email').isEmail().withMessage('Valid email is required'),
-  body('role').isIn(['admin', 'subadmin', 'manager', 'receptionist', 'housekeeping', 'maintenance', 'guest'])
+  body('email').isEmail().withMessage('Valid email is required')
     .withMessage('Invalid role'),
 ];
 
