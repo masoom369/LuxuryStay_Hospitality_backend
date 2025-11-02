@@ -18,13 +18,18 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Custom request logger
+// // Custom request logger
+// app.use((req, res, next) => {
+//   req.requestTime = new Date().toISOString();
+//   console.log(`[${req.requestTime}] ${req.method} ${req.originalUrl}`);
+//   next();
+// });
+// Logging middleware for debugging request bodies
 app.use((req, res, next) => {
-  req.requestTime = new Date().toISOString();
-  console.log(`[${req.requestTime}] ${req.method} ${req.originalUrl}`);
+  console.log(`Incoming ${req.method} request to ${req.url}`);
+  console.log('Request body:', req.body);
   next();
 });
-
 // Connect to database
 connectDatabase();
 
