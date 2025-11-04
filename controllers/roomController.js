@@ -6,7 +6,14 @@ const { applyAccessFilters } = require('../middleware/auth');
 
 const createRoom = async (req, res) => {
   try {
-    const room = new Room(req.body);
+    const roomData = { ...req.body };
+
+    // Handle image uploads
+    if (req.files && req.files.length > 0) {
+      roomData.images = req.files.map(file => file.filename);
+    }
+
+    const room = new Room(roomData);
     await room.save();
 
     res.status(201).json({
@@ -92,9 +99,28 @@ const getRoomById = async (req, res) => {
 
 const updateRoom = async (req, res) => {
   try {
+    const updateData = { ...req.body };
+
+    // Handle image uploads for updates
+    if (req.files && req.files.length > 0) {
+      const newImages = req.files.map(file => file.filename);
+      // If updating images, replace existing ones or append
+      if (updateData.replaceImages) {
+        updateData.images = newImages;
+      } else {
+        // Get existing room to append images
+        const existingRoom = await Room.findOne({ _id: req.params.id, deletedAt: null });
+        if (existingRoom) {
+          updateData.images = [...(existingRoom.images || []), ...newImages];
+        } else {
+          updateData.images = newImages;
+        }
+      }
+    }
+
     const room = await Room.findOneAndUpdate(
       { _id: req.params.id, deletedAt: null },
-      req.body,
+      updateData,
       { new: true, runValidators: true }
     );
 

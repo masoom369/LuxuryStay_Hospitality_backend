@@ -6,7 +6,14 @@ const { applyAccessFilters } = require('../middleware/auth');
 
 const createHotel = async (req, res) => {
   try {
-    const hotel = new Hotel(req.body);
+    const hotelData = { ...req.body };
+
+    // Handle image uploads
+    if (req.files && req.files.length > 0) {
+      hotelData.images = req.files.map(file => file.filename);
+    }
+
+    const hotel = new Hotel(hotelData);
     await hotel.save();
 
     res.status(201).json({
@@ -90,9 +97,28 @@ const getHotelById = async (req, res) => {
 
 const updateHotel = async (req, res) => {
   try {
+    const updateData = { ...req.body };
+
+    // Handle image uploads for updates
+    if (req.files && req.files.length > 0) {
+      const newImages = req.files.map(file => file.filename);
+      // If updating images, replace existing ones or append
+      if (updateData.replaceImages) {
+        updateData.images = newImages;
+      } else {
+        // Get existing hotel to append images
+        const existingHotel = await Hotel.findOne({ _id: req.params.id, deletedAt: null });
+        if (existingHotel) {
+          updateData.images = [...(existingHotel.images || []), ...newImages];
+        } else {
+          updateData.images = newImages;
+        }
+      }
+    }
+
     const hotel = await Hotel.findOneAndUpdate(
       { _id: req.params.id, deletedAt: null },
-      req.body,
+      updateData,
       { new: true, runValidators: true }
     );
 
