@@ -19,6 +19,7 @@ const serviceRoutes = require('./serviceRoutes');
 const configRoutes = require('./configRoutes');
 const notificationRoutes = require('./notificationRoutes');
 const analyticsRoutes = require('./analyticsRoutes');
+const contactRoutes = require('./contactRoutes');
 
 // Mount routes
 apiRoutes.use('/auth', authRoutes);
@@ -34,5 +35,6 @@ apiRoutes.use('/services', serviceRoutes);
 apiRoutes.use('/config', configRoutes);
 apiRoutes.use('/notifications', notificationRoutes);
 apiRoutes.use('/analytics', analyticsRoutes);
+apiRoutes.use('/contact', contactRoutes);
 
 module.exports = apiRoutes;

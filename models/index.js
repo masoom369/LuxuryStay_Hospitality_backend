@@ -1,6 +1,7 @@
 module.exports = {
   AdditionalService: require('./AdditionalService'),
   Billing: require('./Billing'),
+  Contact: require('./Contact'),
   Feedback: require('./Feedback'),
   Hotel: require('./Hotel'),
   Housekeeping: require('./Housekeeping'),

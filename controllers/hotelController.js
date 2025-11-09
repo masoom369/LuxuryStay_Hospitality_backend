@@ -30,6 +30,42 @@ const createHotel = async (req, res) => {
   }
 };
 
+const getPublicHotels = async (req, res) => {
+  try {
+    const { page = 1, limit = 10, city, country } = req.query;
+    const filters = { 
+      deletedAt: null,
+      isActive: true // Only show active hotels to public
+    };
+
+    if (city) filters['location.city'] = city;
+    if (country) filters['location.country'] = country;
+
+    const hotels = await Hotel.find(filters)
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
+      .sort({ createdAt: -1 });
+
+    const total = await Hotel.countDocuments(filters);
+
+    res.json({
+      success: true,
+      data: hotels,
+      pagination: {
+        total,
+        page: parseInt(page),
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch hotels',
+      error: error.message
+    });
+  }
+};
+
 const getAllHotels = async (req, res) => {
   try {
     const { page = 1, limit = 10, city, country, isActive } = req.query;
@@ -176,5 +212,6 @@ module.exports = {
   getAllHotels,
   getHotelById,
   updateHotel,
-  deleteHotel
+  deleteHotel,
+  getPublicHotels
 };

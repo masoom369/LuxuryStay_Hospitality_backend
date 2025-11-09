@@ -12,7 +12,7 @@ const housekeepingSchema = new mongoose.Schema({
     validate: {
       validator: async function (id) {
         const user = await mongoose.model('User').findById(id);
-        return user && ['housekeeping', 'manager', 'admin'].includes(user.role);
+        return user && ['housekeeping'].includes(user.role);
       }
     }
   },
