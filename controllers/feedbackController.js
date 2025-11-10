@@ -1,7 +1,8 @@
 // ======================
 // Feedback Controller
 // ======================
-const { Feedback, Reservation } = require('../models/');
+const mongoose = require('mongoose');
+const { Feedback, Reservation, Room } = require('../models/');
 const { applyAccessFilters } = require('../middleware/auth');
 
 const createFeedback = async (req, res) => {
@@ -45,7 +46,7 @@ const getAllFeedback = async (req, res) => {
 
     const feedbacks = await Feedback.find(query)
       .populate('guest', 'username email')
-      .populate('reservation', 'reservationId checkInDate checkOutDate')
+      .populate('reservation', 'checkInDate checkOutDate')
       .populate('response.respondedBy', 'username email')
       .limit(limit * 1)
       .skip((page - 1) * limit)
@@ -141,37 +142,87 @@ const respondToFeedback = async (req, res) => {
 const getFeedbackByHotelId = async (req, res) => {
   try {
     const { hotelId } = req.params;
-    const { page = 1, limit = 10, status = 'published' } = req.query;
-    
-    // First, get all reservations for the specified hotel
-    const reservationIds = await Reservation.find({ 
+    const { page = 1, limit = 100, status = 'published' } = req.query;
+
+    // First, get all rooms for the specified hotel
+    const rooms = await Room.find({
       hotel: hotelId,
-      deletedAt: null 
+      deletedAt: null
     }).select('_id');
-    
-    // Extract IDs from the reservation documents
-    const reservationObjectIds = reservationIds.map(res => res._id);
-    
-    // Only fetch feedback for those reservations
+
+    // Extract room IDs
+    const roomIds = rooms.map(room => room._id);
+
+    // Handle case where hotel has no rooms
+    if (!roomIds || roomIds.length === 0) {
+      return res.json({
+        success: true,
+        data: [],
+        message: 'No rooms found for this hotel'
+      });
+    }
+
+    // Then get all reservations for those rooms
+    const reservations = await Reservation.find({
+      room: { $in: roomIds },
+      deletedAt: null
+    }).select('_id');
+
+    // Extract reservation IDs
+    const reservationIds = reservations.map(res => res._id);
+
+    // Handle case where hotel has rooms but no reservations
+    if (!reservationIds || reservationIds.length === 0) {
+      return res.json({
+        success: true,
+        data: [],
+        message: 'No reservations found for this hotel'
+      });
+    }
+
+    // Build filters for feedback
     const filters = {
-      status: status === 'all' ? { $in: ['published', 'reviewed'] } : status,
       deletedAt: null,
-      reservation: { $in: reservationObjectIds }
+      reservation: { $in: reservationIds }
     };
 
+    // Handle status filter
+    if (status === 'all') {
+      filters.status = { $in: ['published', 'reviewed'] };
+    } else {
+      filters.status = status;
+    }
+    // Fetch feedback
     const feedbacks = await Feedback.find(filters)
-      .populate('reservation', 'hotel checkInDate checkOutDate')  // Only populate reservation with necessary fields
-      .populate('guest', 'username')
+      .populate('guest', 'username email')
+      .populate({
+        path: 'reservation',
+        select: 'room checkInDate checkOutDate',
+        populate: {
+          path: 'room',
+          select: 'roomNumber roomType'
+        }
+      })
+      .populate('response.respondedBy', 'username')
       .limit(limit * 1)
       .skip((page - 1) * limit)
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean(); // Use lean for better performance
+
+    // Get total count
+    const total = await Feedback.countDocuments(filters);
 
     res.json({
       success: true,
       data: feedbacks,
-      count: feedbacks.length
+      pagination: {
+        total,
+        page: parseInt(page),
+        pages: Math.ceil(total / limit)
+      }
     });
   } catch (error) {
+    console.error('❌ Error in getFeedbackByHotelId:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch feedback',

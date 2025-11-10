@@ -158,6 +158,7 @@ db.users.insertMany([
 // Sample Rooms
 db.rooms.insertMany([
   {
+    _id: ObjectId("507f1f77bcf86cd799439019"),
     roomNumber: "101",
     roomType: "single",
     hotel: ObjectId("507f1f77bcf86cd799439011"),
@@ -173,6 +174,7 @@ db.rooms.insertMany([
     isActive: true
   },
   {
+    _id: ObjectId("507f1f77bcf86cd799439020"),
     roomNumber: "201",
     roomType: "deluxe",
     hotel: ObjectId("507f1f77bcf86cd799439011"),
@@ -188,6 +190,7 @@ db.rooms.insertMany([
     isActive: true
   },
   {
+    _id: ObjectId("507f1f77bcf86cd799439021"),
     roomNumber: "102",
     roomType: "suite",
     hotel: ObjectId("507f1f77bcf86cd799439012"),
@@ -207,9 +210,9 @@ db.rooms.insertMany([
 // Sample Reservations
 db.reservations.insertMany([
   {
-    reservationId: "RES001",
+    _id: ObjectId("507f1f77bcf86cd799439022"),
     guest: ObjectId("507f1f77bcf86cd799439017"),
-    room: ObjectId("507f1f77bcf86cd799439019"), // Room 201
+    room: ObjectId("507f1f77bcf86cd799439020"), // Room 201
     checkInDate: new Date("2023-10-01"),
     checkOutDate: new Date("2023-10-05"),
     numberOfGuests: 2,
@@ -222,9 +225,9 @@ db.reservations.insertMany([
     createdBy: ObjectId("507f1f77bcf86cd799439015") // Receptionist
   },
   {
-    reservationId: "RES002",
+    _id: ObjectId("507f1f77bcf86cd799439023"),
     guest: ObjectId("507f1f77bcf86cd799439018"),
-    room: ObjectId("507f1f77bcf86cd799439020"), // Room 102
+    room: ObjectId("507f1f77bcf86cd799439021"), // Room 102
     checkInDate: new Date("2023-10-10"),
     checkOutDate: new Date("2023-10-15"),
     numberOfGuests: 3,
@@ -241,8 +244,9 @@ db.reservations.insertMany([
 // Sample Billings
 db.billings.insertMany([
   {
+    _id: ObjectId("507f1f77bcf86cd799439024"),
     invoiceNumber: "INV001",
-    reservation: ObjectId("507f1f77bcf86cd799439021"), // RES001
+    reservation: ObjectId("507f1f77bcf86cd799439022"),
     guest: ObjectId("507f1f77bcf86cd799439017"),
     items: [
       { description: "Room charge", category: "room", quantity: 4, unitPrice: 200, totalPrice: 800 }
@@ -262,7 +266,8 @@ db.billings.insertMany([
 // Sample Additional Services
 db.additionalservices.insertMany([
   {
-    reservation: ObjectId("507f1f77bcf86cd799439021"),
+    _id: ObjectId("507f1f77bcf86cd799439025"),
+    reservation: ObjectId("507f1f77bcf86cd799439022"),
     guest: ObjectId("507f1f77bcf86cd799439017"),
     serviceType: "room_service",
     description: "Dinner delivery",
@@ -277,8 +282,9 @@ db.additionalservices.insertMany([
 // Sample Feedbacks
 db.feedbacks.insertMany([
   {
+    _id: ObjectId("507f1f77bcf86cd799439026"),
     guest: ObjectId("507f1f77bcf86cd799439017"),
-    reservation: ObjectId("507f1f77bcf86cd799439021"),
+    reservation: ObjectId("507f1f77bcf86cd799439022"),
     rating: 5,
     categories: {
       cleanliness: 5,
@@ -296,7 +302,8 @@ db.feedbacks.insertMany([
 // Sample Housekeeping
 db.housekeepings.insertMany([
   {
-    room: ObjectId("507f1f77bcf86cd799439019"),
+    _id: ObjectId("507f1f77bcf86cd799439027"),
+    room: ObjectId("507f1f77bcf86cd799439020"), // Room 201
     assignedTo: ObjectId("507f1f77bcf86cd799439016"),
     taskType: "checkout_cleaning",
     priority: "high",
@@ -309,17 +316,29 @@ db.housekeepings.insertMany([
   }
 ]);
 
+// Add a maintenance user first
+db.users.insertOne({
+  _id: ObjectId("507f1f77bcf86cd799439028"),
+  email: "maintenance1@luxurystay.com",
+  username: "maintenance1",
+  password: "$2a$10$hashedpassword",
+  role: "maintenance",
+  assignments: [{ hotel: ObjectId("507f1f77bcf86cd799439011") }],
+  isActive: true
+});
+
 // Sample Maintenance
 db.maintenances.insertMany([
   {
+    _id: ObjectId("507f1f77bcf86cd799439029"),
     ticketNumber: "MAINT001",
-    room: ObjectId("507f1f77bcf86cd799439018"), // Room 101
+    room: ObjectId("507f1f77bcf86cd799439019"), // Room 101
     issueType: "plumbing",
     description: "Leaky faucet",
     priority: "medium",
     status: "completed",
     reportedBy: ObjectId("507f1f77bcf86cd799439017"),
-    assignedTo: ObjectId("507f1f77bcf86cd799439022"), // Assume maintenance user, but not inserted yet - placeholder
+    assignedTo: ObjectId("507f1f77bcf86cd799439028"), // Maintenance user
     estimatedCost: 50,
     actualCost: 45,
     notes: "Fixed successfully"
@@ -329,10 +348,11 @@ db.maintenances.insertMany([
 // Sample Notifications
 db.notifications.insertMany([
   {
+    _id: ObjectId("507f1f77bcf86cd799439030"),
     recipient: ObjectId("507f1f77bcf86cd799439017"),
     type: "booking",
     title: "Reservation Confirmed",
-    message: "Your reservation RES001 has been confirmed.",
+    message: "Your reservation has been confirmed.",
     priority: "medium",
     isRead: false,
     hotel: ObjectId("507f1f77bcf86cd799439011")

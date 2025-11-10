@@ -62,7 +62,7 @@ const getAllBills = async (req, res) => {
 
     const bills = await Billing.find(query)
       .populate('guest', 'username email')
-      .populate('reservation', 'reservationId checkInDate checkOutDate')
+      .populate('reservation', 'checkInDate checkOutDate')
       .populate('generatedBy', 'username email')
       .limit(limit * 1)
       .skip((page - 1) * limit)

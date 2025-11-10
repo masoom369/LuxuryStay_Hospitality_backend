@@ -8,11 +8,6 @@ const createReservation = async (req, res) => {
   try {
     const reservationData = req.body;
 
-    // Generate unique reservation ID
-    const timestamp = Date.now().toString().slice(-6);
-    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-    reservationData.reservationId = `RES${timestamp}${random}`;
-
     // Verify room availability
     const room = await Room.findById(reservationData.room);
     if (!room || room.status === 'maintenance') {

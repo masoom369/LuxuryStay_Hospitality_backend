@@ -4,7 +4,6 @@
 const mongoose = require('mongoose');
 
 const reservationSchema = new mongoose.Schema({
-  reservationId: { type: String, required: true, unique: true },
   guest: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

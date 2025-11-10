@@ -46,7 +46,7 @@ const getAllServiceRequests = async (req, res) => {
 
     const services = await AdditionalService.find(query)
       .populate('guest', 'username email')
-      .populate('reservation', 'reservationId room')
+      .populate('reservation', 'room')
       .populate('assignedTo', 'username email')
       .limit(limit * 1)
       .skip((page - 1) * limit)
