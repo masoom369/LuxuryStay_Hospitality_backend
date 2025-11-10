@@ -204,49 +204,90 @@ const deleteRoom = async (req, res) => {
   }
 };
 
+const getRoomByHotelId = async (req, res) => {
+  try {
+    const { hotelId } = req.params;
+    const { page = 1, limit = 10, roomType, status } = req.query;
+    
+    const filters = {
+      hotel: hotelId,
+      deletedAt: null,
+      isActive: true, // Only show active rooms to public
+      status: { $ne: 'maintenance' } // Don't show rooms in maintenance to public
+    };
+
+    if (roomType) filters.roomType = roomType;
+    if (status) filters.status = status;
+
+    const rooms = await Room.find(filters)
+      .populate('hotel', 'name location')
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
+      .sort({ roomNumber: 1 });
+
+    const total = await Room.countDocuments(filters);
+
+    res.json({
+      success: true,
+      data: rooms,
+      pagination: {
+        total,
+        page: parseInt(page),
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch rooms',
+      error: error.message
+    });
+  }
+};
+
 const checkAvailability = async (req, res) => {
   try {
-    const { hotel, checkInDate, checkOutDate, roomType } = req.query;
+    const { hotel, checkInDate, checkOutDate } = req.query;
 
     const filter = {
       hotel,
       deletedAt: null,
       isActive: true,
-      status: 'available'
+      status: 'available',
     };
 
-    if (roomType) filter.roomType = roomType;
-
-    // Get all rooms matching criteria
+    // Get all available rooms for that hotel
     const availableRooms = await Room.find(filter);
 
-    // Check for overlapping reservations
+    // Find overlapping reservations
     const overlappingReservations = await Reservation.find({
-      room: { $in: availableRooms.map(r => r._id) },
+      room: { $in: availableRooms.map((r) => r._id) },
       status: { $in: ['confirmed', 'checked-in'] },
       $or: [
         {
           checkInDate: { $lte: new Date(checkOutDate) },
-          checkOutDate: { $gte: new Date(checkInDate) }
-        }
-      ]
+          checkOutDate: { $gte: new Date(checkInDate) },
+        },
+      ],
     });
 
-    const bookedRoomIds = overlappingReservations.map(r => r.room.toString());
+    const bookedRoomIds = overlappingReservations.map((r) => r.room.toString());
+
+    // Exclude rooms already booked
     const actuallyAvailable = availableRooms.filter(
-      room => !bookedRoomIds.includes(room._id.toString())
+      (room) => !bookedRoomIds.includes(room._id.toString())
     );
 
     res.json({
       success: true,
       data: actuallyAvailable,
-      count: actuallyAvailable.length
+      count: actuallyAvailable.length,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: 'Availability check failed',
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -258,5 +299,6 @@ module.exports = {
   updateRoom,
   updateRoomStatus,
   deleteRoom,
+  getRoomByHotelId,
   checkAvailability
 };

@@ -3,7 +3,7 @@
 // ======================
 const express = require('express');
 const { body } = require('express-validator');
-const { protect, admin } = require('../middleware/auth');
+const { authenticate, authorize } = require('../middleware/auth');
 const {
   createContact,
   getContacts,
@@ -25,20 +25,23 @@ router.post('/', [
   body('phone').optional().trim().isLength({ max: 20 }).withMessage('Phone number is too long')
 ], createContact);
 
+// Apply authentication middleware for all routes below this line
+router.use(authenticate);
+
 // @desc    Get all contact messages
 // @route   GET /contact
 // @access  Private (Admin)
-router.get('/', protect, admin, getContacts);
+router.get('/', authorize({ roles: ['admin'], resource: 'contact' }), getContacts);
 
 // @desc    Get a single contact message
 // @route   GET /contact/:id
 // @access  Private (Admin)
-router.get('/:id', protect, admin, getContact);
+router.get('/:id', authorize({ roles: ['admin'], resource: 'contact' }), getContact);
 
 // @desc    Update a contact message
 // @route   PUT /contact/:id
 // @access  Private (Admin)
-router.put('/:id', protect, admin, [
+router.put('/:id', authorize({ roles: ['admin'], resource: 'contact' }), [
   body('status').optional().isIn(['pending', 'in-progress', 'resolved', 'closed']).withMessage('Invalid status'),
   body('priority').optional().isIn(['low', 'medium', 'high', 'urgent']).withMessage('Invalid priority'),
   body('response').optional().trim().isLength({ max: 1000 }).withMessage('Response is too long')
@@ -47,6 +50,6 @@ router.put('/:id', protect, admin, [
 // @desc    Delete a contact message
 // @route   DELETE /contact/:id
 // @access  Private (Admin)
-router.delete('/:id', protect, admin, deleteContact);
+router.delete('/:id', authorize({ roles: ['admin'], resource: 'contact' }), deleteContact);
 
 module.exports = router;

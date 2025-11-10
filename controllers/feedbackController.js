@@ -1,7 +1,7 @@
 // ======================
 // Feedback Controller
 // ======================
-const { Feedback } = require('../models/');
+const { Feedback, Reservation } = require('../models/');
 const { applyAccessFilters } = require('../middleware/auth');
 
 const createFeedback = async (req, res) => {
@@ -138,6 +138,48 @@ const respondToFeedback = async (req, res) => {
   }
 };
 
+const getFeedbackByHotelId = async (req, res) => {
+  try {
+    const { hotelId } = req.params;
+    const { page = 1, limit = 10, status = 'published' } = req.query;
+    
+    // First, get all reservations for the specified hotel
+    const reservationIds = await Reservation.find({ 
+      hotel: hotelId,
+      deletedAt: null 
+    }).select('_id');
+    
+    // Extract IDs from the reservation documents
+    const reservationObjectIds = reservationIds.map(res => res._id);
+    
+    // Only fetch feedback for those reservations
+    const filters = {
+      status: status === 'all' ? { $in: ['published', 'reviewed'] } : status,
+      deletedAt: null,
+      reservation: { $in: reservationObjectIds }
+    };
+
+    const feedbacks = await Feedback.find(filters)
+      .populate('reservation', 'hotel checkInDate checkOutDate')  // Only populate reservation with necessary fields
+      .populate('guest', 'username')
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      data: feedbacks,
+      count: feedbacks.length
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch feedback',
+      error: error.message
+    });
+  }
+};
+
 const publishFeedback = async (req, res) => {
   try {
     const feedback = await Feedback.findOneAndUpdate(
@@ -172,5 +214,6 @@ module.exports = {
   getAllFeedback,
   getFeedbackById,
   respondToFeedback,
-  publishFeedback
+  publishFeedback,
+  getFeedbackByHotelId
 };
