@@ -33,16 +33,42 @@ const createFeedback = async (req, res) => {
 
 const getAllFeedback = async (req, res) => {
   try {
-    const { page = 1, limit = 10, status, guest, reservation, rating } = req.query;
+    const { page = 1, limit = 10, status, guest, reservation, rating, sortBy = 'newest', searchTerm } = req.query;
     const filters = { deletedAt: null };
 
-    if (status) filters.status = status;
+    if (status && status !== 'all') filters.status = status;
     if (guest) filters.guest = guest;
     if (reservation) filters.reservation = reservation;
-    if (rating) filters.rating = rating;
+    if (rating && rating !== 'all') filters.rating = parseInt(rating);
+
+    // Apply search term filtering
+    if (searchTerm) {
+      filters.$or = [
+        { 'title': { $regex: searchTerm, $options: 'i' } },
+        { 'comment': { $regex: searchTerm, $options: 'i' } },
+        { 'response.text': { $regex: searchTerm, $options: 'i' } }
+      ];
+    }
 
     // Apply access filters automatically
     const query = applyAccessFilters(req, filters, 'feedback');
+
+    // Build sort object based on sortBy parameter
+    let sort = { createdAt: -1 }; // default to newest first
+    switch (sortBy) {
+      case 'oldest':
+        sort = { createdAt: 1 };
+        break;
+      case 'rating-high':
+        sort = { rating: -1, createdAt: -1 };
+        break;
+      case 'rating-low':
+        sort = { rating: 1, createdAt: -1 };
+        break;
+      default: // 'newest' or default
+        sort = { createdAt: -1 };
+        break;
+    }
 
     const feedbacks = await Feedback.find(query)
       .populate('guest', 'username email')
@@ -50,7 +76,7 @@ const getAllFeedback = async (req, res) => {
       .populate('response.respondedBy', 'username email')
       .limit(limit * 1)
       .skip((page - 1) * limit)
-      .sort({ createdAt: -1 });
+      .sort(sort);
 
     const total = await Feedback.countDocuments(query);
 

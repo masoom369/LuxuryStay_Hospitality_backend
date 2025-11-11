@@ -237,6 +237,74 @@ const completeService = async (req, res) => {
   }
 };
 
+const getAvailableServices = async (req, res) => {
+  try {
+    // Return a list of available services that guests can request
+    const availableServices = [
+      {
+        id: 'room_service',
+        name: 'Room Service',
+        description: 'Food and beverage delivery to your room',
+        category: 'Dining',
+        active: true
+      },
+      {
+        id: 'laundry',
+        name: 'Laundry Service',
+        description: 'Professional laundry and dry cleaning service',
+        category: 'Convenience',
+        active: true
+      },
+      {
+        id: 'wake_up_call',
+        name: 'Wake-up Call',
+        description: 'Personalized wake-up call service',
+        category: 'Concierge',
+        active: true
+      },
+      {
+        id: 'transportation',
+        name: 'Transportation',
+        description: 'Airport transfers and local transportation',
+        category: 'Concierge',
+        active: true
+      },
+      {
+        id: 'spa',
+        name: 'Spa Services',
+        description: 'Relaxing treatments and wellness services',
+        category: 'Wellness',
+        active: true
+      },
+      {
+        id: 'tour',
+        name: 'Local Tours',
+        description: 'Guided tours and excursions',
+        category: 'Excursions',
+        active: true
+      },
+      {
+        id: 'other',
+        name: 'Other Requests',
+        description: 'Special requests and assistance',
+        category: 'General',
+        active: true
+      }
+    ];
+
+    res.json({
+      success: true,
+      data: availableServices
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch available services',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   createServiceRequest,
   getAllServiceRequests,
@@ -244,5 +312,6 @@ module.exports = {
   updateServiceRequest,
   assignService,
   completeService,
-  getGuestServiceRequests
+  getGuestServiceRequests,
+  getAvailableServices
 };

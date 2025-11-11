@@ -387,6 +387,33 @@ const cancelReservation = async (req, res) => {
   }
 };
 
+const getRecentReservations = async (req, res) => {
+  try {
+    const { limit = 10 } = req.query;
+    
+    // Apply access filters to ensure proper authorization
+    const filters = applyAccessFilters(req, { deletedAt: null });
+    
+    const reservations = await Reservation.find(filters)
+      .populate('guest', 'username email')
+      .populate('room', 'roomNumber roomType hotel')
+      .populate('createdBy', 'username email')
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit));
+
+    res.json({
+      success: true,
+      data: reservations
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch recent reservations',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   createReservation,
   getAllReservations,
@@ -396,5 +423,6 @@ module.exports = {
   checkOut,
   cancelReservation,
   getGuestReservations,
-  getGuestBookingHistory
+  getGuestBookingHistory,
+  getRecentReservations
 };

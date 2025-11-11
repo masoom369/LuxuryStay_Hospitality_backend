@@ -4,10 +4,13 @@
 
 const express = require('express');
 const router = express.Router();
-const { createServiceRequest, getAllServiceRequests, getServiceRequestById, updateServiceRequest, assignService, completeService, getGuestServiceRequests } = require('../controllers/serviceController');
+const { createServiceRequest, getAllServiceRequests, getServiceRequestById, updateServiceRequest, assignService, completeService, getGuestServiceRequests, getAvailableServices } = require('../controllers/serviceController');
 const { authenticate, authorize } = require('../middleware/auth');
 
 router.use(authenticate);
+
+// Public endpoint for available services
+router.get('/additional', getAvailableServices);
 
 router.post('/', authorize({ roles: ['admin', 'guest'], resource: 'service', ownerField: 'guest' }), createServiceRequest);
 router.get('/', authorize({ roles: ['admin', 'manager', 'receptionist', 'guest'], resource: 'service', ownerField: 'guest' }), getAllServiceRequests);

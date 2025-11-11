@@ -91,7 +91,7 @@ const authorize = (config = {}) => {
       
       // For LIST operations (no specific ID)
       if (!resourceId) {
-        return applyListFilters(req, user, resource, hotelField);
+        return applyListFilters(req, user, resource, hotelField, next);
       }
 
       // For ITEM operations (specific ID)
@@ -114,7 +114,7 @@ const authorize = (config = {}) => {
 // ======================
 // Helper: Apply Filters for List Operations
 // ======================
-const applyListFilters = (req, user, resource, hotelField) => {
+const applyListFilters = (req, user, resource, hotelField, next) => {
   const { isGuest, isStaff, assignedHotelIds, userId } = user;
 
   // Guests: Only their own data
@@ -125,7 +125,7 @@ const applyListFilters = (req, user, resource, hotelField) => {
         { user: userId }
       ]
     };
-    return req.next ? req.next() : Promise.resolve();
+    return next();
   }
 
   // Staff: Only assigned hotels
@@ -151,7 +151,7 @@ const applyListFilters = (req, user, resource, hotelField) => {
     }
   }
 
-  return req.next ? req.next() : Promise.resolve();
+  return next();
 };
 
 // ======================
