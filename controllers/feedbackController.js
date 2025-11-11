@@ -304,6 +304,72 @@ const getFeedbackByHotelId = async (req, res) => {
   }
 };
 
+const getRecentFeedback = async (req, res) => {
+  try {
+    const { limit = 10 } = req.query;
+    
+    const feedback = await Feedback.find({
+      deletedAt: null,
+      guest: req.user.userId
+    })
+      .populate('reservation', 'room checkInDate checkOutDate')
+      .populate('response.respondedBy', 'username email')
+      .limit(parseInt(limit))
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      data: feedback
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch recent feedback',
+      error: error.message
+    });
+  }
+};
+
+const updateFeedbackStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+
+    // Validate status
+    const validStatuses = ['pending', 'reviewed', 'published'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid status. Valid statuses are: pending, reviewed, published'
+      });
+    }
+
+    const feedback = await Feedback.findOneAndUpdate(
+      { _id: req.params.id, deletedAt: null },
+      { status },
+      { new: true }
+    );
+
+    if (!feedback) {
+      return res.status(404).json({
+        success: false,
+        message: 'Feedback not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Feedback status updated successfully',
+      data: feedback
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update feedback status',
+      error: error.message
+    });
+  }
+};
+
 const publishFeedback = async (req, res) => {
   try {
     const feedback = await Feedback.findOneAndUpdate(
@@ -338,7 +404,9 @@ module.exports = {
   getAllFeedback,
   getFeedbackById,
   respondToFeedback,
+  updateFeedbackStatus,
   publishFeedback,
   getFeedbackByHotelId,
-  getFeedbackByRoomId
+  getFeedbackByRoomId,
+  getRecentFeedback
 };

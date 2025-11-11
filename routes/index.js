@@ -16,10 +16,12 @@ const housekeepingRoutes = require('./housekeepingRoutes');
 const maintenanceRoutes = require('./maintenanceRoutes');
 const feedbackRoutes = require('./feedbackRoutes');
 const serviceRoutes = require('./serviceRoutes');
+const roomServiceRoutes = require('./roomServiceRoutes');
 const configRoutes = require('./configRoutes');
 const notificationRoutes = require('./notificationRoutes');
 const analyticsRoutes = require('./analyticsRoutes');
 const contactRoutes = require('./contactRoutes');
+const reportsRoutes = require('./reportsRoutes');
 
 // Mount routes
 apiRoutes.use('/auth', authRoutes);
@@ -32,9 +34,11 @@ apiRoutes.use('/housekeeping', housekeepingRoutes);
 apiRoutes.use('/maintenance', maintenanceRoutes);
 apiRoutes.use('/feedback', feedbackRoutes);
 apiRoutes.use('/services', serviceRoutes);
+apiRoutes.use('/room-service', roomServiceRoutes);
 apiRoutes.use('/config', configRoutes);
 apiRoutes.use('/notifications', notificationRoutes);
 apiRoutes.use('/analytics', analyticsRoutes);
 apiRoutes.use('/contact', contactRoutes);
+apiRoutes.use('/reports', reportsRoutes);
 
 module.exports = apiRoutes;

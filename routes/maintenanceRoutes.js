@@ -4,11 +4,29 @@
 
 const express = require('express');
 const router = express.Router();
-const { createMaintenanceRequest, getAllMaintenanceRequests, getMaintenanceRequestById, updateMaintenanceRequest, assignMaintenance, completeMaintenanceRequest } = require('../controllers/maintenanceController');
+const { 
+  getMaintenanceStats,
+  getMaintenanceSchedule,
+  getMaintenanceTrends,
+  searchMaintenanceIssues,
+  createMaintenanceRequest,
+  getAllMaintenanceRequests,
+  getMaintenanceRequestById,
+  updateMaintenanceRequest,
+  assignMaintenance,
+  completeMaintenanceRequest
+} = require('../controllers/maintenanceController');
 const { authenticate, authorize } = require('../middleware/auth');
 
 router.use(authenticate);
 
+// Utility/endpoints for dashboard
+router.get('/stats', authorize({ roles: ['admin', 'manager', 'maintenance'], resource: 'maintenance' }), getMaintenanceStats);
+router.get('/schedule', authorize({ roles: ['admin', 'manager', 'maintenance'], resource: 'maintenance' }), getMaintenanceSchedule);
+router.get('/trends', authorize({ roles: ['admin', 'manager', 'maintenance'], resource: 'maintenance' }), getMaintenanceTrends);
+router.get('/search', authorize({ roles: ['admin', 'manager', 'maintenance'], resource: 'maintenance' }), searchMaintenanceIssues);
+
+// CRUD endpoints
 router.post('/', authorize({ roles: ['admin', 'manager'] }), createMaintenanceRequest);
 router.get('/', authorize({ roles: ['admin', 'manager', 'maintenance'], resource: 'maintenance', populatePath: 'room' }), getAllMaintenanceRequests);
 router.get('/:id', authorize({ roles: ['admin', 'manager', 'maintenance'], resource: 'maintenance', populatePath: 'room' }), getMaintenanceRequestById);

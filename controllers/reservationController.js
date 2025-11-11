@@ -75,6 +75,69 @@ const createReservation = async (req, res) => {
   }
 };
 
+const getGuestReservations = async (req, res) => {
+  try {
+    const { page = 1, limit = 10, status } = req.query;
+    const filters = { 
+      deletedAt: null,
+      guest: req.user.userId
+    };
+
+    if (status) filters.status = status;
+
+    const reservations = await Reservation.find(filters)
+      .populate('room', 'roomNumber roomType hotel')
+      .populate('createdBy', 'username email')
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
+      .sort({ createdAt: -1 });
+
+    const total = await Reservation.countDocuments(filters);
+
+    res.json({
+      success: true,
+      data: reservations,
+      pagination: {
+        total,
+        page: parseInt(page),
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch guest reservations',
+      error: error.message
+    });
+  }
+};
+
+const getGuestBookingHistory = async (req, res) => {
+  try {
+    const filters = { 
+      deletedAt: null,
+      guest: req.user.userId,
+      status: { $in: ['checked-out', 'completed', 'cancelled'] }
+    };
+
+    const reservations = await Reservation.find(filters)
+      .populate('room', 'roomNumber roomType hotel')
+      .populate('createdBy', 'username email')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      data: reservations
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch guest booking history',
+      error: error.message
+    });
+  }
+};
+
 const getAllReservations = async (req, res) => {
   try {
     const { page = 1, limit = 10, status, guest, room, checkInDate, checkOutDate } = req.query;
@@ -331,5 +394,7 @@ module.exports = {
   updateReservation,
   checkIn,
   checkOut,
-  cancelReservation
+  cancelReservation,
+  getGuestReservations,
+  getGuestBookingHistory
 };

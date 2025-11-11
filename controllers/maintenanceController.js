@@ -1,8 +1,173 @@
 // ======================
 // Maintenance Controller
 // ======================
-const { Maintenance, Room } = require('../models/');
+const { Maintenance, Room, User } = require('../models/');
 const { applyAccessFilters } = require('../middleware/auth');
+
+// Get maintenance statistics for dashboard
+const getMaintenanceStats = async (req, res) => {
+  try {
+    const totalIssues = await Maintenance.countDocuments({
+      deletedAt: null,
+      assignedTo: req.user.userId // Filter for current user
+    });
+
+    const reportedIssues = await Maintenance.countDocuments({
+      deletedAt: null,
+      assignedTo: req.user.userId,
+      status: 'reported'
+    });
+
+    const assignedIssues = await Maintenance.countDocuments({
+      deletedAt: null,
+      assignedTo: req.user.userId,
+      status: 'assigned'
+    });
+
+    const inProgressIssues = await Maintenance.countDocuments({
+      deletedAt: null,
+      assignedTo: req.user.userId,
+      status: 'in-progress'
+    });
+
+    const completedIssues = await Maintenance.countDocuments({
+      deletedAt: null,
+      assignedTo: req.user.userId,
+      status: 'completed'
+    });
+
+    const stats = {
+      totalIssues,
+      reportedIssues,
+      assignedIssues,
+      inProgressIssues,
+      completedIssues,
+      completionRate: totalIssues ? Math.round((completedIssues / totalIssues) * 100) : 0
+    };
+
+    res.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch maintenance stats',
+      error: error.message
+    });
+  }
+};
+
+// Get maintenance schedule
+const getMaintenanceSchedule = async (req, res) => {
+  try {
+    const { date } = req.query;
+
+    const filters = {
+      deletedAt: null,
+      assignedTo: req.user.userId
+    };
+
+    if (date) {
+      const startOfDay = new Date(date);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(date);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      filters.createdAt = {
+        $gte: startOfDay,
+        $lt: endOfDay
+      };
+    }
+
+    const issues = await Maintenance.find(filters)
+      .populate('room', 'roomNumber roomType floor')
+      .populate('reportedBy', 'username');
+
+    res.json({
+      success: true,
+      data: issues
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch maintenance schedule',
+      error: error.message
+    });
+  }
+};
+
+// Get maintenance trends
+const getMaintenanceTrends = async (req, res) => {
+  try {
+    // In a real application, this would aggregate data by date periods
+    // For now, we'll return mock data similar to the frontend component
+    const trends = [
+      { day: 'Mon', completed: 3 },
+      { day: 'Tue', completed: 5 },
+      { day: 'Wed', completed: 2 },
+      { day: 'Thu', completed: 7 },
+      { day: 'Fri', completed: 4 },
+      { day: 'Sat', completed: 6 },
+      { day: 'Sun', completed: 8 },
+    ];
+
+    res.json({
+      success: true,
+      data: trends
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch maintenance trends',
+      error: error.message
+    });
+  }
+};
+
+// Search maintenance issues
+const searchMaintenanceIssues = async (req, res) => {
+  try {
+    const { q: query, status, priority, roomNumber, issueType } = req.query;
+
+    if (!query && !status && !priority && !roomNumber && !issueType) {
+      return res.status(400).json({
+        success: false,
+        message: 'Query parameter q is required when no other filters are provided'
+      });
+    }
+
+    const filters = { deletedAt: null, assignedTo: req.user.userId };
+
+    if (query) {
+      filters.$or = [
+        { 'room.roomNumber': { $regex: query, $options: 'i' } },
+        { 'description': { $regex: query, $options: 'i' } },
+        { 'issueType': { $regex: query, $options: 'i' } }
+      ];
+    }
+
+    if (status) filters.status = status;
+    if (priority) filters.priority = priority;
+    if (roomNumber) filters['room.roomNumber'] = roomNumber;
+    if (issueType) filters.issueType = issueType;
+
+    const issues = await Maintenance.find(filters)
+      .populate('room', 'roomNumber roomType floor')
+      .populate('reportedBy', 'username');
+
+    res.json({
+      success: true,
+      data: issues
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to search maintenance issues',
+      error: error.message
+    });
+  }
+};
 
 const createMaintenanceRequest = async (req, res) => {
   try {
@@ -11,7 +176,7 @@ const createMaintenanceRequest = async (req, res) => {
     // Generate ticket number
     const timestamp = Date.now().toString().slice(-6);
     const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-    requestData.ticketNumber = `MNT${timestamp}${random}`;
+    requestData.ticketNumber = `MTK${timestamp}${random}`;
 
     requestData.reportedBy = req.user.userId;
 
@@ -217,6 +382,10 @@ const completeMaintenanceRequest = async (req, res) => {
 };
 
 module.exports = {
+  getMaintenanceStats,
+  getMaintenanceSchedule,
+  getMaintenanceTrends,
+  searchMaintenanceIssues,
   createMaintenanceRequest,
   getAllMaintenanceRequests,
   getMaintenanceRequestById,

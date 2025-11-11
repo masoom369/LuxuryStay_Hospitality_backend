@@ -72,6 +72,35 @@ const getAllUsers = async (req, res) => {
     }
 };
 
+const getGuestStats = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.userId)
+            .select('loyaltyPoints totalStays preferences');
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        res.json({
+            success: true,
+            data: {
+                loyaltyPoints: user.loyaltyPoints,
+                totalStays: user.totalStays,
+                preferences: user.preferences
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch guest stats',
+            error: error.message
+        });
+    }
+};
+
 const getUserById = async (req, res) => {
     try {
         // Access already verified by authorize middleware
@@ -97,6 +126,37 @@ const getUserById = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to fetch user',
+            error: error.message
+        });
+    }
+};
+
+const updateGuestPreferences = async (req, res) => {
+    try {
+        const updates = req.body;
+
+        const user = await User.findByIdAndUpdate(
+            req.user.userId,
+            { preferences: updates.preferences || {} }, 
+            { new: true, runValidators: true }
+        ).select('-password');
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        res.json({
+            success: true,
+            message: 'Guest preferences updated successfully',
+            data: user
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Guest preferences update failed',
             error: error.message
         });
     }
@@ -207,5 +267,7 @@ module.exports = {
     getUserById,
     updateUser,
     deleteUser,
-    assignHotel
+    assignHotel,
+    getGuestStats,
+    updateGuestPreferences
 };

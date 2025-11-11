@@ -1,8 +1,146 @@
 // ======================
 // Housekeeping Controller
 // ======================
-const { Housekeeping, Room } = require('../models/');
+const { Housekeeping, Room, User } = require('../models/');
 const { applyAccessFilters } = require('../middleware/auth');
+
+const getHousekeepingStats = async (req, res) => {
+  try {
+    // Calculate housekeeping stats
+    const totalTasks = await Housekeeping.countDocuments({
+      deletedAt: null,
+      assignedTo: req.user.userId // Only for the current user
+    });
+
+    const completedTasks = await Housekeeping.countDocuments({
+      deletedAt: null,
+      assignedTo: req.user.userId,
+      status: 'completed'
+    });
+
+    const inProgressTasks = await Housekeeping.countDocuments({
+      deletedAt: null,
+      assignedTo: req.user.userId,
+      status: 'in-progress'
+    });
+
+    const pendingTasks = await Housekeeping.countDocuments({
+      deletedAt: null,
+      assignedTo: req.user.userId,
+      status: 'pending'
+    });
+
+    const todayTasks = await Housekeeping.countDocuments({
+      deletedAt: null,
+      assignedTo: req.user.userId,
+      createdAt: {
+        $gte: new Date(new Date().setHours(0, 0, 0, 0)),
+        $lt: new Date(new Date().setHours(23, 59, 59, 999))
+      }
+    });
+
+    const stats = {
+      totalTasks,
+      completedTasks,
+      inProgressTasks,
+      pendingTasks,
+      todayTasks,
+      completionRate: totalTasks ? Math.round((completedTasks / totalTasks) * 100) : 0
+    };
+
+    res.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch housekeeping stats',
+      error: error.message
+    });
+  }
+};
+
+const getHousekeepingSchedule = async (req, res) => {
+  try {
+    const { date } = req.query;
+
+    const filters = {
+      deletedAt: null,
+      assignedTo: req.user.userId
+    };
+
+    if (date) {
+      const startOfDay = new Date(date);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(date);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      filters.scheduledTime = {
+        $gte: startOfDay,
+        $lt: endOfDay
+      };
+    }
+
+    const tasks = await Housekeeping.find(filters)
+      .populate('room', 'roomNumber roomType floor')
+      .populate('assignedBy', 'username')
+      .sort({ scheduledTime: 1 });
+
+    res.json({
+      success: true,
+      data: tasks
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch housekeeping schedule',
+      error: error.message
+    });
+  }
+};
+
+const searchHousekeepingTasks = async (req, res) => {
+  try {
+    const { q: query, status, priority, roomNumber } = req.query;
+
+    if (!query && !status && !priority && !roomNumber) {
+      return res.status(400).json({
+        success: false,
+        message: 'Query parameter q is required when no other filters are provided'
+      });
+    }
+
+    const filters = { deletedAt: null, assignedTo: req.user.userId };
+
+    if (query) {
+      filters.$or = [
+        { 'room.roomNumber': { $regex: query, $options: 'i' } },
+        { 'notes': { $regex: query, $options: 'i' } },
+        { 'taskType': { $regex: query, $options: 'i' } }
+      ];
+    }
+
+    if (status) filters.status = status;
+    if (priority) filters.priority = priority;
+    if (roomNumber) filters['room.roomNumber'] = roomNumber;
+
+    const tasks = await Housekeeping.find(filters)
+      .populate('room', 'roomNumber roomType floor')
+      .populate('assignedBy', 'username');
+
+    res.json({
+      success: true,
+      data: tasks
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to search housekeeping tasks',
+      error: error.message
+    });
+  }
+};
 
 const createHousekeepingTask = async (req, res) => {
   try {
@@ -203,6 +341,9 @@ const completeTask = async (req, res) => {
 };
 
 module.exports = {
+  getHousekeepingStats,
+  getHousekeepingSchedule,
+  searchHousekeepingTasks,
   createHousekeepingTask,
   getAllHousekeepingTasks,
   getHousekeepingTaskById,

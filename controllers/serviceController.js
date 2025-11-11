@@ -72,6 +72,44 @@ const getAllServiceRequests = async (req, res) => {
   }
 };
 
+const getGuestServiceRequests = async (req, res) => {
+  try {
+    const { page = 1, limit = 10, status } = req.query;
+    
+    const filters = { 
+      deletedAt: null,
+      guest: req.user.userId
+    };
+
+    if (status) filters.status = status;
+
+    const services = await AdditionalService.find(filters)
+      .populate('reservation', 'room')
+      .populate('assignedTo', 'username email')
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
+      .sort({ requestedTime: -1 });
+
+    const total = await AdditionalService.countDocuments(filters);
+
+    res.json({
+      success: true,
+      data: services,
+      pagination: {
+        total,
+        page: parseInt(page),
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch guest service requests',
+      error: error.message
+    });
+  }
+};
+
 const getServiceRequestById = async (req, res) => {
   try {
     // Access already verified by authorize middleware
@@ -205,5 +243,6 @@ module.exports = {
   getServiceRequestById,
   updateServiceRequest,
   assignService,
-  completeService
+  completeService,
+  getGuestServiceRequests
 };
