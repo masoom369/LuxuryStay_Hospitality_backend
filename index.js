@@ -51,14 +51,14 @@ app.use(errorHandler);
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
-  console.error('💥 Uncaught Exception:', error);
+  console.error('Uncaught Exception:', error);
   console.error('Stack:', error.stack);
   process.exit(1);
 });
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('💥 Unhandled Rejection at:', promise);
+  console.error('Unhandled Rejection at:', promise);
   console.error('Reason:', reason);
   process.exit(1);
 });
