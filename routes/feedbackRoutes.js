@@ -4,15 +4,18 @@
 
 const express = require('express');
 const router = express.Router();
-const { createFeedback, getAllFeedback, getFeedbackById, respondToFeedback, publishFeedback, getFeedbackByHotelId } = require('../controllers/feedbackController');
+const { createFeedback, getAllFeedback, getFeedbackById, respondToFeedback, publishFeedback, getFeedbackByHotelId, getFeedbackByRoomId } = require('../controllers/feedbackController');
 const { authenticate, authorize } = require('../middleware/auth');
 
-// Public route for getting feedback by hotel ID (for public hotel pages)
+// Public routes for getting feedback
 router.get('/hotel/:hotelId', getFeedbackByHotelId);
+router.get('/room/:roomId', getFeedbackByRoomId);
 router.get('/', getAllFeedback);
 
+// Apply authentication middleware to all routes below this line
 router.use(authenticate);
 
+// Protected routes for authenticated users
 router.post('/', authorize({ roles: ['admin', 'guest'], resource: 'feedback', ownerField: 'guest' }), createFeedback);
 router.get('/:id', authorize({ roles: ['admin', 'manager', 'guest'], resource: 'feedback', ownerField: 'guest', populatePath: 'reservation' }), getFeedbackById);
 router.post('/:id/respond', authorize({ roles: ['admin', 'manager'], resource: 'feedback', ownerField: 'guest', populatePath: 'reservation' }), respondToFeedback);

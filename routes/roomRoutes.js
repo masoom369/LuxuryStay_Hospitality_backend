@@ -14,10 +14,12 @@ router.get('/hotel/:hotelId', getRoomByHotelId);
 router.get('/',  getAllRooms);
 router.get('/availability', checkAvailability);
 
+// Public route for getting a room by ID (for public room detail page)
+router.get('/:id', getRoomById);
+
 router.use(authenticate);
 
 router.post('/', uploadRoomImages, handleMulterError, authorize({ roles: ['admin', 'manager'], resource: 'room' }), validateRoom, handleValidationErrors, createRoom);
-router.get('/:id', authorize({ roles: ['admin', 'manager', 'receptionist', 'housekeeping', 'maintenance', 'guest'], resource: 'room' }), getRoomById);
 router.put('/:id', uploadRoomImages, handleMulterError, authorize({ roles: ['admin', 'manager'], resource: 'room' }), updateRoom);
 router.patch('/:id/status', authorize({ roles: ['admin', 'manager', 'receptionist', 'housekeeping'], resource: 'room' }), updateRoomStatus);
 router.delete('/:id', authorize({ roles: ['admin'], resource: 'room' }), deleteRoom);

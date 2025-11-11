@@ -139,6 +139,80 @@ const respondToFeedback = async (req, res) => {
   }
 };
 
+// Get feedback by room ID
+const getFeedbackByRoomId = async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    const { page = 1, limit = 100, status = 'published' } = req.query;
+
+    // Get all reservations for the specified room
+    const reservations = await Reservation.find({
+      room: roomId,
+      deletedAt: null
+    }).select('_id');
+
+    // Handle case where room has no reservations
+    if (!reservations || reservations.length === 0) {
+      return res.json({
+        success: true,
+        data: [],
+        message: 'No reservations found for this room'
+      });
+    }
+
+    // Extract reservation IDs
+    const reservationIds = reservations.map(res => res._id);
+
+    // Build filters for feedback
+    const filters = {
+      deletedAt: null,
+      reservation: { $in: reservationIds }
+    };
+
+    // Handle status filter
+    if (status === 'all') {
+      filters.status = { $in: ['published', 'reviewed'] };
+    } else {
+      filters.status = status;
+    }
+
+    // Apply access filters automatically
+    const query = applyAccessFilters(req, filters, 'feedback');
+
+    const feedback = await Feedback.find(query)
+      .populate('guest', 'username')
+      .populate('reservation', 'checkInDate checkOutDate')
+      .populate({
+        path: 'reservation',
+        populate: {
+          path: 'room',
+          select: 'roomNumber roomType'
+        }
+      })
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
+      .sort({ createdAt: -1 });
+
+    const total = await Feedback.countDocuments(query);
+
+    res.json({
+      success: true,
+      data: feedback,
+      pagination: {
+        total,
+        page: parseInt(page),
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch feedback',
+      error: error.message
+    });
+  }
+};
+
 const getFeedbackByHotelId = async (req, res) => {
   try {
     const { hotelId } = req.params;
@@ -222,7 +296,6 @@ const getFeedbackByHotelId = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('❌ Error in getFeedbackByHotelId:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch feedback',
@@ -266,5 +339,6 @@ module.exports = {
   getFeedbackById,
   respondToFeedback,
   publishFeedback,
-  getFeedbackByHotelId
+  getFeedbackByHotelId,
+  getFeedbackByRoomId
 };

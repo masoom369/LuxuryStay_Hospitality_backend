@@ -69,7 +69,7 @@ db.users.insertMany([
     _id: ObjectId("507f1f77bcf86cd799439013"),
     email: "admin@luxurystay.com",
     username: "admin",
-    password: "$2a$10$hashedpassword", // Use bcrypt hash for 'password123'
+    password: "$2b$10$PKGHcfy02knyqecY03Ui4eVhF1XJKfFBekEwUvw5jaFfYTrB1GUIm", // Use bcrypt hash for 'password123'
     role: "admin",
     isActive: true
   },
@@ -78,7 +78,7 @@ db.users.insertMany([
     _id: ObjectId("507f1f77bcf86cd799439014"),
     email: "manager1@luxurystay.com",
     username: "manager1",
-    password: "$2a$10$hashedpassword",
+    password: "$2b$10$PKGHcfy02knyqecY03Ui4eVhF1XJKfFBekEwUvw5jaFfYTrB1GUIm",
     role: "manager",
     assignments: [{ hotel: ObjectId("507f1f77bcf86cd799439011") }],
     isActive: true
@@ -88,7 +88,7 @@ db.users.insertMany([
     _id: ObjectId("507f1f77bcf86cd799439015"),
     email: "receptionist1@luxurystay.com",
     username: "receptionist1",
-    password: "$2a$10$hashedpassword",
+    password: "$2b$10$PKGHcfy02knyqecY03Ui4eVhF1XJKfFBekEwUvw5jaFfYTrB1GUIm",
     role: "receptionist",
     assignments: [{ hotel: ObjectId("507f1f77bcf86cd799439011") }],
     isActive: true
@@ -98,7 +98,7 @@ db.users.insertMany([
     _id: ObjectId("507f1f77bcf86cd799439016"),
     email: "housekeeping1@luxurystay.com",
     username: "housekeeping1",
-    password: "$2a$10$hashedpassword",
+    password: "$2b$10$PKGHcfy02knyqecY03Ui4eVhF1XJKfFBekEwUvw5jaFfYTrB1GUIm",
     role: "housekeeping",
     assignments: [{ hotel: ObjectId("507f1f77bcf86cd799439011") }],
     isActive: true
@@ -108,7 +108,7 @@ db.users.insertMany([
     _id: ObjectId("507f1f77bcf86cd799439017"),
     email: "guest1@example.com",
     username: "guest1",
-    password: "$2a$10$hashedpassword",
+    password: "$2b$10$PKGHcfy02knyqecY03Ui4eVhF1XJKfFBekEwUvw5jaFfYTrB1GUIm",
     role: "guest",
     address: {
       street: "789 Guest St",
@@ -133,7 +133,7 @@ db.users.insertMany([
     _id: ObjectId("507f1f77bcf86cd799439018"),
     email: "guest2@example.com",
     username: "guest2",
-    password: "$2a$10$hashedpassword",
+    password: "$2b$10$PKGHcfy02knyqecY03Ui4eVhF1XJKfFBekEwUvw5jaFfYTrB1GUIm",
     role: "guest",
     address: {
       street: "101 Tourist Ave",
@@ -321,7 +321,7 @@ db.users.insertOne({
   _id: ObjectId("507f1f77bcf86cd799439028"),
   email: "maintenance1@luxurystay.com",
   username: "maintenance1",
-  password: "$2a$10$hashedpassword",
+  password: "$2b$10$PKGHcfy02knyqecY03Ui4eVhF1XJKfFBekEwUvw5jaFfYTrB1GUIm",
   role: "maintenance",
   assignments: [{ hotel: ObjectId("507f1f77bcf86cd799439011") }],
   isActive: true
