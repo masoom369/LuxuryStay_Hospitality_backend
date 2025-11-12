@@ -41,7 +41,7 @@ This is the backend server for the LuxuryStay Hospitality hotel management syste
 
 1. Clone the repository:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/masoom369/LuxuryStay_Hospitality_backend.git
    ```
 
 2. Navigate to the backend directory:
