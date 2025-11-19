@@ -10,7 +10,7 @@ const { validateReservation, handleValidationErrors } = require('../middleware/v
 
 router.use(authenticate);
 
-router.post('/', authorize({ roles: ['admin', 'manager', 'receptionist'], resource: 'reservation', ownerField: 'guest', populatePath: 'room' }), validateReservation, handleValidationErrors, createReservation);
+router.post('/', authorize({ roles: ['admin', 'manager', 'receptionist', 'guest'], resource: 'reservation', ownerField: 'guest', populatePath: 'room' }), validateReservation, handleValidationErrors, createReservation);
 router.get('/', authorize({ roles: ['admin', 'manager', 'receptionist', 'guest'], resource: 'reservation', ownerField: 'guest', populatePath: 'room' }), getAllReservations);
 router.get('/recent', authorize({ roles: ['admin', 'manager', 'receptionist', 'guest'], resource: 'reservation', ownerField: 'guest', populatePath: 'room' }), getRecentReservations);
 router.get('/guest', authorize({ roles: ['guest'], resource: 'reservation', ownerField: '_id', populatePath: 'room' }), getGuestReservations);
